@@ -709,15 +709,6 @@ func (h *MessageHandler) customerAboutRetryText(session *customerSession) string
 }
 
 func (h *MessageHandler) updateCustomerSessionMessage(ctx context.Context, session *customerSession, text string, keyboard *maxbot.Keyboard) {
-	if session.MessageID != "" {
-		if err := h.editInteractiveMessage(ctx, session.ChatID, session.UserID, session.MessageID, text, keyboard); err == nil {
-			h.customerSessions.upsert(session)
-			return
-		} else {
-			h.logger.Warn("failed to edit customer message", zap.Error(err), zap.Int64("chat_id", session.ChatID))
-		}
-	}
-
 	messageID, err := h.sendInteractiveMessage(ctx, session.ChatID, session.UserID, text, keyboard)
 	if err != nil {
 		h.logger.Error("failed to send customer message", zap.Error(err), zap.Int64("chat_id", session.ChatID))
