@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: max-bot
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: max-bot
+  template:
+    metadata:
+      labels:
+        app: max-bot
+    spec:
+      containers:
+        - name: max-bot
+          image: docker.io/slipneff/dobrika-max-bot:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: config
+              mountPath: /app/deployments/config.yaml
+              subPath: config.yaml
+          ports:
+            - containerPort: 8080
+      volumes:
+        - name: config
+          configMap:
+            name: max-bot-config

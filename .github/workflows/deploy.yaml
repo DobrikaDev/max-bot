@@ -1,0 +1,79 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/dobrika-max-bot
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "${HOME}/.kube"
+          echo "${KUBECONFIG_BASE64}" | base64 --decode > "${HOME}/.kube/config"
+        env:
+          KUBECONFIG_BASE64: ${{ secrets.KUBECONFIG_BASE64 }}
+          
+      - name: Run database migrations
+        run: |
+          set -euo pipefail
+          kubectl port-forward svc/postgres -n default 5432:5432 &
+          PF_PID=$!
+          trap "kill ${PF_PID}" EXIT
+          sleep 5
+          go run ./migrator
+
+      - name: Apply Kubernetes manifests
+        env:
+          MAX_TOKEN: ${{ secrets.MAX_TOKEN }}
+          USER_SERVICE_URL: user-service.default.svc.cluster.local:8081
+        run: |
+          envsubst < deployments/k8s/configmap.yaml | kubectl apply -f -
+          kubectl apply -f deployments/k8s/service.yaml
+          kubectl apply -f deployments/k8s/deployment.yaml
+
+      - name: Update deployment image
+        run: |
+          kubectl set image deployment/max-bot \
+            -n default \
+            max-bot=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
