@@ -53,14 +53,6 @@ jobs:
         env:
           KUBECONFIG_BASE64: ${{ secrets.KUBECONFIG_BASE64 }}
           
-      - name: Run database migrations
-        run: |
-          set -euo pipefail
-          kubectl port-forward svc/postgres -n default 5432:5432 &
-          PF_PID=$!
-          trap "kill ${PF_PID}" EXIT
-          sleep 5
-          go run ./migrator
 
       - name: Apply Kubernetes manifests
         env:
