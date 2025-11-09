@@ -88,6 +88,14 @@ func (h *MessageHandler) tryHandleCustomerCallback(ctx context.Context, update *
 		h.handleCustomerManageBack(ctx, update)
 		h.answerCallback(ctx, update.Callback.CallbackID)
 		return true
+	case callbackCustomerManageTasks:
+		h.handleCustomerManageTasks(ctx, update)
+		h.answerCallback(ctx, update.Callback.CallbackID)
+		return true
+	case callbackCustomerManageCreateTask:
+		h.handleCustomerManageCreateTask(ctx, update)
+		h.answerCallback(ctx, update.Callback.CallbackID)
+		return true
 	default:
 		return false
 	}
@@ -306,6 +314,40 @@ func (h *MessageHandler) handleCustomerManageBack(ctx context.Context, update *s
 	h.SendMainMenu(ctx, chatID, userID)
 }
 
+func (h *MessageHandler) handleCustomerManageTasks(ctx context.Context, update *schemes.MessageCallbackUpdate) {
+	if update.Message == nil {
+		return
+	}
+
+	text := h.messages.CustomerTasksListText
+	if strings.TrimSpace(text) == "" {
+		text = "Список задач пока недоступен. Мы скоро добавим управление задачами здесь."
+	}
+
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddCallback(h.messages.CustomerManageBackButton, schemes.DEFAULT, callbackCustomerManageBack)
+
+	h.renderMenu(ctx, update.Message.Recipient.ChatId, update.Callback.User.UserId, text, keyboard)
+}
+
+func (h *MessageHandler) handleCustomerManageCreateTask(ctx context.Context, update *schemes.MessageCallbackUpdate) {
+	if update.Message == nil {
+		return
+	}
+
+	text := h.messages.CustomerCreateTaskPlaceholderText
+	if strings.TrimSpace(text) == "" {
+		text = "Создание задач появится позже. Следите за обновлениями!"
+	}
+
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddCallback(h.messages.CustomerManageBackButton, schemes.DEFAULT, callbackCustomerManageBack)
+
+	h.renderMenu(ctx, update.Message.Recipient.ChatId, update.Callback.User.UserId, text, keyboard)
+}
+
 func (h *MessageHandler) startCustomerFlow(ctx context.Context, userID, chatID int64, messageID string, existing bool, existingCustomer *customerpb.Customer) {
 	session := &customerSession{
 		UserID:    userID,
@@ -521,7 +563,7 @@ func (h *MessageHandler) showCustomerManageMenu(ctx context.Context, chatID, use
 
 	summaryTemplate := h.messages.CustomerSummaryTemplate
 	if strings.TrimSpace(summaryTemplate) == "" {
-		summaryTemplate = "*Тип:* %s\n*Имя или название:* %s\n*Описание запроса:* %s"
+		summaryTemplate = "*Кому:* %s\n*История:* %s"
 	}
 
 	about := strings.TrimSpace(customer.GetAbout())
@@ -533,7 +575,7 @@ func (h *MessageHandler) showCustomerManageMenu(ctx context.Context, chatID, use
 		name = "—"
 	}
 
-	summary := fmt.Sprintf(summaryTemplate, h.customerTypeLabel(customer.GetType()), name, about)
+	summary := fmt.Sprintf(summaryTemplate, name, about)
 
 	builder := strings.Builder{}
 	if strings.TrimSpace(intro) != "" {
@@ -558,8 +600,20 @@ func (h *MessageHandler) showCustomerManageMenu(ctx context.Context, chatID, use
 	}
 
 	keyboard := h.api.Messages.NewKeyboardBuilder()
+	tasksLabel := h.messages.CustomerManageTasksButton
+	if strings.TrimSpace(tasksLabel) == "" {
+		tasksLabel = "Мои задачи"
+	}
+	createTaskLabel := h.messages.CustomerManageCreateTaskButton
+	if strings.TrimSpace(createTaskLabel) == "" {
+		createTaskLabel = "Создать задачу"
+	}
+
 	keyboard.AddRow().
 		AddCallback(updateLabel, schemes.DEFAULT, callbackCustomerManageUpdate)
+	keyboard.AddRow().
+		AddCallback(tasksLabel, schemes.DEFAULT, callbackCustomerManageTasks).
+		AddCallback(createTaskLabel, schemes.POSITIVE, callbackCustomerManageCreateTask)
 	keyboard.AddRow().
 		AddCallback(deleteLabel, schemes.NEGATIVE, callbackCustomerManageDelete)
 	keyboard.AddRow().

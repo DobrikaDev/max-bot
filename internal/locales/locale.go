@@ -11,91 +11,95 @@ import (
 var rawRU []byte
 
 type Messages struct {
-	MainMenuText                   string   `json:"main_menu_text"`
-	MainMenuButtons                []string `json:"main_menu_buttons"`
-	CustomerServiceUnavailableText string   `json:"customer_service_unavailable_text"`
-	CustomerLookupErrorText        string   `json:"customer_lookup_error_text"`
-	CustomerFormIntroText          string   `json:"customer_form_intro_text"`
-	CustomerSummaryTitle           string   `json:"customer_summary_title"`
-	CustomerSummaryTemplate        string   `json:"customer_summary_template"`
-	CustomerTypePrompt             string   `json:"customer_type_prompt"`
-	CustomerTypeIndividualButton   string   `json:"customer_type_individual_button"`
-	CustomerTypeBusinessButton     string   `json:"customer_type_business_button"`
-	CustomerTypeIndividualLabel    string   `json:"customer_type_individual_label"`
-	CustomerTypeBusinessLabel      string   `json:"customer_type_business_label"`
-	CustomerNamePrompt             string   `json:"customer_name_prompt"`
-	CustomerNameRetryText          string   `json:"customer_name_retry_text"`
-	CustomerNamePromptIndividual   string   `json:"customer_name_prompt_individual"`
-	CustomerNamePromptBusiness     string   `json:"customer_name_prompt_business"`
-	CustomerNameRetryIndividual    string   `json:"customer_name_retry_individual"`
-	CustomerNameRetryBusiness      string   `json:"customer_name_retry_business"`
-	CustomerAboutPrompt            string   `json:"customer_about_prompt"`
-	CustomerAboutRetryText         string   `json:"customer_about_retry_text"`
-	CustomerAboutPromptIndividual  string   `json:"customer_about_prompt_individual"`
-	CustomerAboutPromptBusiness    string   `json:"customer_about_prompt_business"`
-	CustomerAboutRetryIndividual   string   `json:"customer_about_retry_individual"`
-	CustomerAboutRetryBusiness     string   `json:"customer_about_retry_business"`
-	CustomerCreateSuccessText      string   `json:"customer_create_success_text"`
-	CustomerUpdateSuccessText      string   `json:"customer_update_success_text"`
-	CustomerSaveErrorText          string   `json:"customer_save_error_text"`
-	CustomerManageCreateButton     string   `json:"customer_manage_create_button"`
-	CustomerManageUpdateButton     string   `json:"customer_manage_update_button"`
-	CustomerManageDeleteButton     string   `json:"customer_manage_delete_button"`
-	CustomerManageBackButton       string   `json:"customer_manage_back_button"`
-	CustomerDeleteConfirmText      string   `json:"customer_delete_confirm_text"`
-	CustomerDeleteConfirmButton    string   `json:"customer_delete_confirm_button"`
-	CustomerDeleteCancelButton     string   `json:"customer_delete_cancel_button"`
-	CustomerDeleteSuccessText      string   `json:"customer_delete_success_text"`
-	CustomerDeleteErrorText        string   `json:"customer_delete_error_text"`
-	ProfileTitle                   string   `json:"profile_title"`
-	ProfileSkillsTitle             string   `json:"profile_skills_title"`
-	ProfileLevelBalanceTemplate    string   `json:"profile_level_balance_template"`
-	ProfileHistoryButton           string   `json:"profile_history_button"`
-	ProfileEditButton              string   `json:"profile_edit_button"`
-	ProfileSecurityButton          string   `json:"profile_security_button"`
-	ProfileBackButton              string   `json:"profile_back_button"`
-	ProfileCoinsButton             string   `json:"profile_coins_button"`
-	ProfileSecurityTitle           string   `json:"profile_security_title"`
-	ProfileSecurityText            string   `json:"profile_security_text"`
-	ProfileSecuritySOSButton       string   `json:"profile_security_sos_button"`
-	ProfileSecuritySOSLink         string   `json:"profile_security_sos_link"`
-	ProfileHistoryText             string   `json:"profile_history_text"`
-	ProfileEditText                string   `json:"profile_edit_text"`
-	RegistrationStartText          string   `json:"registration_start_text"`
-	RegistrationAgeRetryText       string   `json:"registration_age_retry_text"`
-	RegistrationAgeUnder18Button   string   `json:"registration_age_under_18_button"`
-	RegistrationAge18_24Button     string   `json:"registration_age_18_24_button"`
-	RegistrationAge25_34Button     string   `json:"registration_age_25_34_button"`
-	RegistrationAge35_44Button     string   `json:"registration_age_35_44_button"`
-	RegistrationAge45_54Button     string   `json:"registration_age_45_54_button"`
-	RegistrationAge55_64Button     string   `json:"registration_age_55_64_button"`
-	RegistrationAge65PlusButton    string   `json:"registration_age_65_plus_button"`
-	RegistrationSexPrompt          string   `json:"registration_sex_prompt"`
-	RegistrationSexMaleText        string   `json:"registration_sex_male_text"`
-	RegistrationSexFemaleText      string   `json:"registration_sex_female_text"`
-	RegistrationLocationPrompt     string   `json:"registration_location_prompt"`
-	RegistrationLocationGeoButton  string   `json:"registration_location_geo_button"`
-	RegistrationLocationSkipButton string   `json:"registration_location_skip_button"`
-	RegistrationLocationRetryText  string   `json:"registration_location_retry_text"`
-	RegistrationAboutPrompt        string   `json:"registration_about_prompt"`
-	RegistrationAboutConfirmButton string   `json:"registration_about_confirm_button"`
-	RegistrationAboutOptions       []string `json:"registration_about_options"`
-	RegistrationErrorText          string   `json:"registration_error_text"`
-	RegistrationCompleteText       string   `json:"registration_complete_text"`
-	NewUserWelcomeText             string   `json:"new_user_welcome_text"`
-	NewUserJoinButton              string   `json:"new_user_join_button"`
-	CoinsIntroText                 string   `json:"coins_intro_text"`
-	CoinsButtons                   []string `json:"coins_buttons"`
-	CoinsHowToGetText              string   `json:"coins_how_to_get_text"`
-	CoinsHowToSpendText            string   `json:"coins_how_to_spend_text"`
-	CoinsLevelsText                string   `json:"coins_levels_text"`
-	CoinsBackButton                string   `json:"coins_back_button"`
-	AboutDobrikaText               string   `json:"about_dobrika_text"`
-	AboutDobrikaButtons            []string `json:"about_dobrika_buttons"`
-	AboutDobrikaHowText            string   `json:"about_dobrika_how_text"`
-	AboutDobrikaRulesText          string   `json:"about_dobrika_rules_text"`
-	AboutDobrikaInitiatorText      string   `json:"about_dobrika_initiator_text"`
-	AboutDobrikaSupportText        string   `json:"about_dobrika_support_text"`
+	MainMenuText                      string   `json:"main_menu_text"`
+	MainMenuButtons                   []string `json:"main_menu_buttons"`
+	CustomerServiceUnavailableText    string   `json:"customer_service_unavailable_text"`
+	CustomerLookupErrorText           string   `json:"customer_lookup_error_text"`
+	CustomerFormIntroText             string   `json:"customer_form_intro_text"`
+	CustomerSummaryTitle              string   `json:"customer_summary_title"`
+	CustomerSummaryTemplate           string   `json:"customer_summary_template"`
+	CustomerTypePrompt                string   `json:"customer_type_prompt"`
+	CustomerTypeIndividualButton      string   `json:"customer_type_individual_button"`
+	CustomerTypeBusinessButton        string   `json:"customer_type_business_button"`
+	CustomerTypeIndividualLabel       string   `json:"customer_type_individual_label"`
+	CustomerTypeBusinessLabel         string   `json:"customer_type_business_label"`
+	CustomerNamePrompt                string   `json:"customer_name_prompt"`
+	CustomerNameRetryText             string   `json:"customer_name_retry_text"`
+	CustomerNamePromptIndividual      string   `json:"customer_name_prompt_individual"`
+	CustomerNamePromptBusiness        string   `json:"customer_name_prompt_business"`
+	CustomerNameRetryIndividual       string   `json:"customer_name_retry_individual"`
+	CustomerNameRetryBusiness         string   `json:"customer_name_retry_business"`
+	CustomerAboutPrompt               string   `json:"customer_about_prompt"`
+	CustomerAboutRetryText            string   `json:"customer_about_retry_text"`
+	CustomerAboutPromptIndividual     string   `json:"customer_about_prompt_individual"`
+	CustomerAboutPromptBusiness       string   `json:"customer_about_prompt_business"`
+	CustomerAboutRetryIndividual      string   `json:"customer_about_retry_individual"`
+	CustomerAboutRetryBusiness        string   `json:"customer_about_retry_business"`
+	CustomerCreateSuccessText         string   `json:"customer_create_success_text"`
+	CustomerUpdateSuccessText         string   `json:"customer_update_success_text"`
+	CustomerSaveErrorText             string   `json:"customer_save_error_text"`
+	CustomerManageCreateButton        string   `json:"customer_manage_create_button"`
+	CustomerManageUpdateButton        string   `json:"customer_manage_update_button"`
+	CustomerManageDeleteButton        string   `json:"customer_manage_delete_button"`
+	CustomerManageBackButton          string   `json:"customer_manage_back_button"`
+	CustomerManageTasksButton         string   `json:"customer_manage_tasks_button"`
+	CustomerManageCreateTaskButton    string   `json:"customer_manage_create_task_button"`
+	CustomerTasksListText             string   `json:"customer_tasks_list_text"`
+	CustomerCreateTaskPlaceholderText string   `json:"customer_create_task_placeholder_text"`
+	CustomerDeleteConfirmText         string   `json:"customer_delete_confirm_text"`
+	CustomerDeleteConfirmButton       string   `json:"customer_delete_confirm_button"`
+	CustomerDeleteCancelButton        string   `json:"customer_delete_cancel_button"`
+	CustomerDeleteSuccessText         string   `json:"customer_delete_success_text"`
+	CustomerDeleteErrorText           string   `json:"customer_delete_error_text"`
+	ProfileTitle                      string   `json:"profile_title"`
+	ProfileSkillsTitle                string   `json:"profile_skills_title"`
+	ProfileLevelBalanceTemplate       string   `json:"profile_level_balance_template"`
+	ProfileHistoryButton              string   `json:"profile_history_button"`
+	ProfileEditButton                 string   `json:"profile_edit_button"`
+	ProfileSecurityButton             string   `json:"profile_security_button"`
+	ProfileBackButton                 string   `json:"profile_back_button"`
+	ProfileCoinsButton                string   `json:"profile_coins_button"`
+	ProfileSecurityTitle              string   `json:"profile_security_title"`
+	ProfileSecurityText               string   `json:"profile_security_text"`
+	ProfileSecuritySOSButton          string   `json:"profile_security_sos_button"`
+	ProfileSecuritySOSLink            string   `json:"profile_security_sos_link"`
+	ProfileHistoryText                string   `json:"profile_history_text"`
+	ProfileEditText                   string   `json:"profile_edit_text"`
+	RegistrationStartText             string   `json:"registration_start_text"`
+	RegistrationAgeRetryText          string   `json:"registration_age_retry_text"`
+	RegistrationAgeUnder18Button      string   `json:"registration_age_under_18_button"`
+	RegistrationAge18_24Button        string   `json:"registration_age_18_24_button"`
+	RegistrationAge25_34Button        string   `json:"registration_age_25_34_button"`
+	RegistrationAge35_44Button        string   `json:"registration_age_35_44_button"`
+	RegistrationAge45_54Button        string   `json:"registration_age_45_54_button"`
+	RegistrationAge55_64Button        string   `json:"registration_age_55_64_button"`
+	RegistrationAge65PlusButton       string   `json:"registration_age_65_plus_button"`
+	RegistrationSexPrompt             string   `json:"registration_sex_prompt"`
+	RegistrationSexMaleText           string   `json:"registration_sex_male_text"`
+	RegistrationSexFemaleText         string   `json:"registration_sex_female_text"`
+	RegistrationLocationPrompt        string   `json:"registration_location_prompt"`
+	RegistrationLocationGeoButton     string   `json:"registration_location_geo_button"`
+	RegistrationLocationSkipButton    string   `json:"registration_location_skip_button"`
+	RegistrationLocationRetryText     string   `json:"registration_location_retry_text"`
+	RegistrationAboutPrompt           string   `json:"registration_about_prompt"`
+	RegistrationAboutConfirmButton    string   `json:"registration_about_confirm_button"`
+	RegistrationAboutOptions          []string `json:"registration_about_options"`
+	RegistrationErrorText             string   `json:"registration_error_text"`
+	RegistrationCompleteText          string   `json:"registration_complete_text"`
+	NewUserWelcomeText                string   `json:"new_user_welcome_text"`
+	NewUserJoinButton                 string   `json:"new_user_join_button"`
+	CoinsIntroText                    string   `json:"coins_intro_text"`
+	CoinsButtons                      []string `json:"coins_buttons"`
+	CoinsHowToGetText                 string   `json:"coins_how_to_get_text"`
+	CoinsHowToSpendText               string   `json:"coins_how_to_spend_text"`
+	CoinsLevelsText                   string   `json:"coins_levels_text"`
+	CoinsBackButton                   string   `json:"coins_back_button"`
+	AboutDobrikaText                  string   `json:"about_dobrika_text"`
+	AboutDobrikaButtons               []string `json:"about_dobrika_buttons"`
+	AboutDobrikaHowText               string   `json:"about_dobrika_how_text"`
+	AboutDobrikaRulesText             string   `json:"about_dobrika_rules_text"`
+	AboutDobrikaInitiatorText         string   `json:"about_dobrika_initiator_text"`
+	AboutDobrikaSupportText           string   `json:"about_dobrika_support_text"`
 }
 
 var (
@@ -211,6 +215,12 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.CustomerManageDeleteButton != "" {
 		base.CustomerManageDeleteButton = overrides.CustomerManageDeleteButton
 	}
+	if overrides.CustomerManageTasksButton != "" {
+		base.CustomerManageTasksButton = overrides.CustomerManageTasksButton
+	}
+	if overrides.CustomerManageCreateTaskButton != "" {
+		base.CustomerManageCreateTaskButton = overrides.CustomerManageCreateTaskButton
+	}
 	if overrides.CustomerManageBackButton != "" {
 		base.CustomerManageBackButton = overrides.CustomerManageBackButton
 	}
@@ -222,6 +232,12 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if overrides.CustomerDeleteCancelButton != "" {
 		base.CustomerDeleteCancelButton = overrides.CustomerDeleteCancelButton
+	}
+	if overrides.CustomerTasksListText != "" {
+		base.CustomerTasksListText = overrides.CustomerTasksListText
+	}
+	if overrides.CustomerCreateTaskPlaceholderText != "" {
+		base.CustomerCreateTaskPlaceholderText = overrides.CustomerCreateTaskPlaceholderText
 	}
 	if overrides.CustomerDeleteSuccessText != "" {
 		base.CustomerDeleteSuccessText = overrides.CustomerDeleteSuccessText
@@ -389,55 +405,59 @@ func defaultMessages() Messages {
 			"Мой профиль",
 			"О Добрике",
 		},
-		CustomerServiceUnavailableText: "Сервис заказчиков недоступен. Попробуйте позже.",
-		CustomerLookupErrorText:        "Не удалось получить данные заказчика. Попробуйте позже.",
-		CustomerFormIntroText:          "Расскажите о заказчике. Заполните профиль, чтобы волонтёры быстрее откликнулись.",
-		CustomerSummaryTitle:           "Профиль заказчика:",
-		CustomerSummaryTemplate:        "*Тип:* %s\n*Имя или название:* %s\n*Описание запроса:* %s",
-		CustomerTypePrompt:             "Кто обращается за помощью?",
-		CustomerTypeIndividualButton:   "Частное лицо",
-		CustomerTypeBusinessButton:     "Организация",
-		CustomerTypeIndividualLabel:    "Частное лицо",
-		CustomerTypeBusinessLabel:      "Организация",
-		CustomerNamePrompt:             "Как вас зовут или как называется организация?",
-		CustomerNamePromptIndividual:   "Как вас зовут?",
-		CustomerNamePromptBusiness:     "Как называется ваша организация или фонд?",
-		CustomerNameRetryText:          "Пожалуйста, укажите имя или название.",
-		CustomerNameRetryIndividual:    "Пожалуйста, укажите имя.",
-		CustomerNameRetryBusiness:      "Пожалуйста, укажите название организации.",
-		CustomerAboutPrompt:            "Опишите, какая помощь нужна.",
-		CustomerAboutPromptIndividual:  "Опишите, какая помощь нужна лично вам или близкому.",
-		CustomerAboutPromptBusiness:    "Опишите, какая помощь нужна вашей организации.",
-		CustomerAboutRetryText:         "Пожалуйста, опишите, какая помощь нужна.",
-		CustomerAboutRetryIndividual:   "Пожалуйста, опишите, какая помощь нужна.",
-		CustomerAboutRetryBusiness:     "Пожалуйста, опишите, какая помощь нужна организации.",
-		CustomerCreateSuccessText:      "Спасибо! Профиль заказчика сохранён.",
-		CustomerUpdateSuccessText:      "Профиль заказчика обновлён.",
-		CustomerSaveErrorText:          "Не удалось сохранить профиль. Попробуйте позже.",
-		CustomerManageCreateButton:     "Заполнить профиль",
-		CustomerManageUpdateButton:     "Обновить профиль",
-		CustomerManageDeleteButton:     "Удалить профиль",
-		CustomerManageBackButton:       "⬅️ Назад в меню",
-		CustomerDeleteConfirmText:      "Удалить профиль заказчика?",
-		CustomerDeleteConfirmButton:    "Удалить профиль",
-		CustomerDeleteCancelButton:     "Отмена",
-		CustomerDeleteSuccessText:      "Профиль заказчика удалён.",
-		CustomerDeleteErrorText:        "Не удалось удалить профиль. Попробуйте позже.",
-		ProfileTitle:                   "👤 *Мой профиль*",
-		ProfileSkillsTitle:             "Навыки и интересы:",
-		ProfileLevelBalanceTemplate:    "🎖 Уровень: *%s*\n💰 Репутация: *%d* добриков",
-		ProfileHistoryButton:           "📜 История дел",
-		ProfileEditButton:              "✏️ Редактировать",
-		ProfileSecurityButton:          "🛡 Безопасность",
-		ProfileBackButton:              "⬅️ Назад в меню",
-		ProfileCoinsButton:             "💰 Добрики",
-		ProfileHistoryText:             "История добрых дел появится совсем скоро 💚",
-		ProfileEditText:                "Редактирование профиля появится в ближайшем обновлении.",
-		ProfileSecurityTitle:           "🛡 Безопасность встреч офлайн",
-		ProfileSecurityText:            "• Назначайте встречи только в людных местах\n• Делитесь планами с близкими\n• Пользуйтесь кнопкой SOS в экстренных ситуациях\n\nВсе правила и контакты: %s",
-		ProfileSecuritySOSButton:       "🚨 Открыть памятку",
-		ProfileSecuritySOSLink:         "https://dobrika.example/safety",
-		AboutDobrikaText:               "Добрика — бот добрых дел. Здесь можно помогать другим и получать добрики за сделанное добро.",
+		CustomerServiceUnavailableText:    "Сервис заказчиков недоступен. Попробуйте позже.",
+		CustomerLookupErrorText:           "Не удалось получить данные заказчика. Попробуйте позже.",
+		CustomerFormIntroText:             "Расскажите о заказчике. Заполните профиль, чтобы волонтёры быстрее откликнулись.",
+		CustomerSummaryTitle:              "Профиль заказчика:",
+		CustomerSummaryTemplate:           "Кому:* %s\n*История:* %s",
+		CustomerTypePrompt:                "Кто обращается за помощью?",
+		CustomerTypeIndividualButton:      "Частное лицо",
+		CustomerTypeBusinessButton:        "Организация",
+		CustomerTypeIndividualLabel:       "Частное лицо",
+		CustomerTypeBusinessLabel:         "Организация",
+		CustomerNamePrompt:                "Как вас зовут или как называется организация?",
+		CustomerNamePromptIndividual:      "Как вас зовут?",
+		CustomerNamePromptBusiness:        "Как называется ваша организация или фонд?",
+		CustomerNameRetryText:             "Пожалуйста, укажите имя или название.",
+		CustomerNameRetryIndividual:       "Пожалуйста, укажите имя.",
+		CustomerNameRetryBusiness:         "Пожалуйста, укажите название организации.",
+		CustomerAboutPrompt:               "Опишите, какая помощь нужна.",
+		CustomerAboutPromptIndividual:     "Опишите, какая помощь нужна лично вам или близкому.",
+		CustomerAboutPromptBusiness:       "Опишите, какая помощь нужна вашей организации.",
+		CustomerAboutRetryText:            "Пожалуйста, опишите, какая помощь нужна.",
+		CustomerAboutRetryIndividual:      "Пожалуйста, опишите, какая помощь нужна.",
+		CustomerAboutRetryBusiness:        "Пожалуйста, опишите, какая помощь нужна организации.",
+		CustomerCreateSuccessText:         "Спасибо! Профиль заказчика сохранён.",
+		CustomerUpdateSuccessText:         "Профиль заказчика обновлён.",
+		CustomerSaveErrorText:             "Не удалось сохранить профиль. Попробуйте позже.",
+		CustomerManageCreateButton:        "Заполнить профиль",
+		CustomerManageUpdateButton:        "Обновить профиль",
+		CustomerManageDeleteButton:        "Удалить профиль",
+		CustomerManageBackButton:          "⬅️ Назад в меню",
+		CustomerManageTasksButton:         "Мои задачи",
+		CustomerManageCreateTaskButton:    "Создать задачу",
+		CustomerTasksListText:             "Список задач пока недоступен. Мы скоро добавим управление задачами здесь.",
+		CustomerCreateTaskPlaceholderText: "Создание задач появится позже. Следите за обновлениями!",
+		CustomerDeleteConfirmText:         "Удалить профиль заказчика?",
+		CustomerDeleteConfirmButton:       "Удалить профиль",
+		CustomerDeleteCancelButton:        "Отмена",
+		CustomerDeleteSuccessText:         "Профиль заказчика удалён.",
+		CustomerDeleteErrorText:           "Не удалось удалить профиль. Попробуйте позже.",
+		ProfileTitle:                      "👤 *Мой профиль*",
+		ProfileSkillsTitle:                "Навыки и интересы:",
+		ProfileLevelBalanceTemplate:       "🎖 Уровень: *%s*\n💰 Репутация: *%d* добриков",
+		ProfileHistoryButton:              "📜 История дел",
+		ProfileEditButton:                 "✏️ Редактировать",
+		ProfileSecurityButton:             "🛡 Безопасность",
+		ProfileBackButton:                 "⬅️ Назад в меню",
+		ProfileCoinsButton:                "💰 Добрики",
+		ProfileHistoryText:                "История добрых дел появится совсем скоро 💚",
+		ProfileEditText:                   "Редактирование профиля появится в ближайшем обновлении.",
+		ProfileSecurityTitle:              "🛡 Безопасность встреч офлайн",
+		ProfileSecurityText:               "• Назначайте встречи только в людных местах\n• Делитесь планами с близкими\n• Пользуйтесь кнопкой SOS в экстренных ситуациях\n\nВсе правила и контакты: %s",
+		ProfileSecuritySOSButton:          "🚨 Открыть памятку",
+		ProfileSecuritySOSLink:            "https://dobrika.example/safety",
+		AboutDobrikaText:                  "Добрика — бот добрых дел. Здесь можно помогать другим и получать добрики за сделанное добро.",
 		AboutDobrikaButtons: []string{
 			"💚 Как это работает",
 			"🧭 Правила и безопасность",

@@ -37,6 +37,8 @@ const (
 	callbackCustomerManageUpdate     = "customer:manage:update"
 	callbackCustomerManageDelete     = "customer:manage:delete"
 	callbackCustomerManageBack       = "customer:manage:back"
+	callbackCustomerManageTasks      = "customer:manage:tasks"
+	callbackCustomerManageCreateTask = "customer:manage:create_task"
 	callbackCustomerDeleteConfirm    = "customer:delete:confirm"
 	callbackCustomerDeleteCancel     = "customer:delete:cancel"
 )
