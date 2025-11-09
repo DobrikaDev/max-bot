@@ -151,11 +151,15 @@ func (h *MessageHandler) SendMainMenu(ctx context.Context, chatID, userID int64,
 	if len(h.messages.MainMenuButtons) >= 2 {
 		keyboard.AddRow().
 			AddCallback(h.messages.MainMenuButtons[0], schemes.POSITIVE, callbackMainMenuHelp)
-		keyboard.AddRow().AddCallback(h.messages.MainMenuButtons[1], schemes.DEFAULT, callbackMainMenuNeedHelp)
+		keyboard.AddRow().
+			AddCallback(h.messages.MainMenuButtons[1], schemes.DEFAULT, callbackMainMenuNeedHelp)
+	}
+	if len(h.messages.MainMenuButtons) >= 3 {
+		keyboard.AddRow().
+			AddCallback(h.messages.MainMenuButtons[2], schemes.DEFAULT, callbackMainMenuProfile)
 	}
 	if len(h.messages.MainMenuButtons) >= 4 {
 		keyboard.AddRow().
-			AddCallback(h.messages.MainMenuButtons[2], schemes.DEFAULT, callbackMainMenuProfile).
 			AddCallback(h.messages.MainMenuButtons[3], schemes.DEFAULT, callbackMainMenuAbout)
 	}
 
@@ -399,7 +403,7 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 	case callbackMainMenuProfile:
 		h.showProfile(ctx, chatID, userID)
 	case callbackMainMenuHelp:
-		h.renderMenu(ctx, chatID, userID, "Раздел «Хочу помочь» скоро появится 💚", h.singleButtonKeyboard(h.messages.ProfileBackButton, callbackProfileBack))
+		h.showVolunteerMenu(ctx, chatID, userID)
 	case callbackMainMenuAbout:
 		h.showAboutDobrikaMenu(ctx, chatID, userID)
 	case callbackProfileCoins:
@@ -452,6 +456,25 @@ func (h *MessageHandler) showProfile(ctx context.Context, chatID, userID int64) 
 		AddCallback(h.messages.ProfileSecurityButton, schemes.DEFAULT, callbackProfileSecurity)
 	keyboard.AddRow().
 		AddCallback(h.messages.ProfileBackButton, schemes.DEFAULT, callbackProfileBack)
+
+	h.renderMenu(ctx, chatID, userID, text, keyboard)
+}
+
+func (h *MessageHandler) showVolunteerMenu(ctx context.Context, chatID, userID int64) {
+	text := h.messages.VolunteerMenuIntro
+	if strings.TrimSpace(text) == "" {
+		text = "💚 Выбери, как хочешь помочь:"
+	}
+
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuOnDemandButton, schemes.DEFAULT, callbackVolunteerOnDemand)
+	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuTasksButton, schemes.DEFAULT, callbackVolunteerTasks)
+	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuProfileButton, schemes.DEFAULT, callbackMainMenuProfile)
+	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackProfileBack)
 
 	h.renderMenu(ctx, chatID, userID, text, keyboard)
 }

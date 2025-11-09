@@ -46,6 +46,13 @@ type Messages struct {
 	CustomerManageCreateTaskButton    string   `json:"customer_manage_create_task_button"`
 	CustomerTasksListText             string   `json:"customer_tasks_list_text"`
 	CustomerCreateTaskPlaceholderText string   `json:"customer_create_task_placeholder_text"`
+	VolunteerMenuIntro                string   `json:"volunteer_menu_intro"`
+	VolunteerMenuOnDemandButton       string   `json:"volunteer_menu_on_demand_button"`
+	VolunteerMenuTasksButton          string   `json:"volunteer_menu_tasks_button"`
+	VolunteerMenuProfileButton        string   `json:"volunteer_menu_profile_button"`
+	VolunteerMenuBackButton           string   `json:"volunteer_menu_back_button"`
+	VolunteerOnDemandPlaceholder      string   `json:"volunteer_on_demand_placeholder"`
+	VolunteerTasksPlaceholder         string   `json:"volunteer_tasks_placeholder"`
 	CustomerDeleteConfirmText         string   `json:"customer_delete_confirm_text"`
 	CustomerDeleteConfirmButton       string   `json:"customer_delete_confirm_button"`
 	CustomerDeleteCancelButton        string   `json:"customer_delete_cancel_button"`
@@ -238,6 +245,27 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if overrides.CustomerCreateTaskPlaceholderText != "" {
 		base.CustomerCreateTaskPlaceholderText = overrides.CustomerCreateTaskPlaceholderText
+	}
+	if overrides.VolunteerMenuIntro != "" {
+		base.VolunteerMenuIntro = overrides.VolunteerMenuIntro
+	}
+	if overrides.VolunteerMenuOnDemandButton != "" {
+		base.VolunteerMenuOnDemandButton = overrides.VolunteerMenuOnDemandButton
+	}
+	if overrides.VolunteerMenuTasksButton != "" {
+		base.VolunteerMenuTasksButton = overrides.VolunteerMenuTasksButton
+	}
+	if overrides.VolunteerMenuProfileButton != "" {
+		base.VolunteerMenuProfileButton = overrides.VolunteerMenuProfileButton
+	}
+	if overrides.VolunteerMenuBackButton != "" {
+		base.VolunteerMenuBackButton = overrides.VolunteerMenuBackButton
+	}
+	if overrides.VolunteerOnDemandPlaceholder != "" {
+		base.VolunteerOnDemandPlaceholder = overrides.VolunteerOnDemandPlaceholder
+	}
+	if overrides.VolunteerTasksPlaceholder != "" {
+		base.VolunteerTasksPlaceholder = overrides.VolunteerTasksPlaceholder
 	}
 	if overrides.CustomerDeleteSuccessText != "" {
 		base.CustomerDeleteSuccessText = overrides.CustomerDeleteSuccessText
@@ -438,6 +466,13 @@ func defaultMessages() Messages {
 		CustomerManageCreateTaskButton:    "Создать задачу",
 		CustomerTasksListText:             "Список задач пока недоступен. Мы скоро добавим управление задачами здесь.",
 		CustomerCreateTaskPlaceholderText: "Создание задач появится позже. Следите за обновлениями!",
+		VolunteerMenuIntro:                "💚 Выберите, как хотите помочь:",
+		VolunteerMenuOnDemandButton:       "По запросу",
+		VolunteerMenuTasksButton:          "Список дел",
+		VolunteerMenuProfileButton:        "Мой профиль",
+		VolunteerMenuBackButton:           "Главное меню",
+		VolunteerOnDemandPlaceholder:      "Раздел «По запросу» в разработке. Скоро здесь появятся обращения от людей рядом 💚",
+		VolunteerTasksPlaceholder:         "Список дел появится скоро. Здесь будут доступные добрые дела.",
 		CustomerDeleteConfirmText:         "Удалить профиль заказчика?",
 		CustomerDeleteConfirmButton:       "Удалить профиль",
 		CustomerDeleteCancelButton:        "Отмена",

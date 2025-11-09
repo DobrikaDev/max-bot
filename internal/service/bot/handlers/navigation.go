@@ -19,6 +19,8 @@ const (
 	callbackAboutInitiator           = "about:initiator"
 	callbackAboutSupport             = "about:support"
 	callbackAboutBack                = "about:back"
+	callbackVolunteerOnDemand        = "volunteer:on_demand"
+	callbackVolunteerTasks           = "volunteer:tasks"
 	callbackRegistrationAgeUnder18   = "registration:age:under18"
 	callbackRegistrationAge18_24     = "registration:age:18_24"
 	callbackRegistrationAge25_34     = "registration:age:25_34"
