@@ -10,7 +10,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build -o /out/user-service .
+RUN go build -o /out/max-bot .
 
 FROM alpine:3.20
 
@@ -18,12 +18,12 @@ WORKDIR /app
 
 RUN adduser -D -u 10001 appuser
 
-COPY --from=builder /out/user-service /app/user-service
+COPY --from=builder /out/max-bot /app/max-bot
 COPY deployments /app/deployments
 
 USER appuser
 
-EXPOSE 8081
+EXPOSE 8080
 
-ENTRYPOINT ["./user-service"]
+ENTRYPOINT ["./max-bot"]
 
