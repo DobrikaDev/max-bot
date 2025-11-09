@@ -124,12 +124,14 @@ func (h *MessageHandler) handleCustomerNeedHelp(ctx context.Context, update *sch
 		if strings.TrimSpace(text) == "" {
 			text = "Сервис заказчиков недоступен. Попробуй позже."
 		}
+		h.logger.Warn("customer service client is not configured", zap.Int64("user_id", userID))
 		h.renderMenu(ctx, chatID, userID, text, h.customerBackKeyboard())
 		return
 	}
 
 	customer, err := h.getCustomerByMaxID(ctx, fmt.Sprintf("%d", userID))
 	if err != nil {
+		h.logger.Error("failed to fetch customer profile", zap.Error(err), zap.Int64("user_id", userID))
 		text := h.messages.CustomerLookupErrorText
 		if strings.TrimSpace(text) == "" {
 			text = "Не удалось получить данные. Попробуй позже."
@@ -139,6 +141,7 @@ func (h *MessageHandler) handleCustomerNeedHelp(ctx context.Context, update *sch
 	}
 
 	if customer == nil {
+		h.logger.Info("customer profile not found", zap.Int64("user_id", userID))
 		h.startCustomerFlow(ctx, userID, chatID, messageID, false, nil)
 		return
 	}
@@ -159,6 +162,7 @@ func (h *MessageHandler) handleCustomerManageCreate(ctx context.Context, update 
 		if strings.TrimSpace(text) == "" {
 			text = "Сервис заказчиков недоступен. Попробуй позже."
 		}
+		h.logger.Warn("customer service client is not configured", zap.Int64("user_id", userID))
 		h.renderMenu(ctx, chatID, userID, text, h.customerBackKeyboard())
 		return
 	}
@@ -188,6 +192,7 @@ func (h *MessageHandler) handleCustomerManageUpdate(ctx context.Context, update 
 
 	customer, err := h.getCustomerByMaxID(ctx, fmt.Sprintf("%d", userID))
 	if err != nil {
+		h.logger.Error("failed to fetch customer profile for update", zap.Error(err), zap.Int64("user_id", userID))
 		text := h.messages.CustomerLookupErrorText
 		if strings.TrimSpace(text) == "" {
 			text = "Не удалось получить данные. Попробуй позже."
@@ -197,6 +202,7 @@ func (h *MessageHandler) handleCustomerManageUpdate(ctx context.Context, update 
 	}
 
 	if customer == nil {
+		h.logger.Info("customer profile not found on update request", zap.Int64("user_id", userID))
 		h.showCustomerEmptyMenu(ctx, chatID, userID, "")
 		return
 	}
@@ -281,6 +287,11 @@ func (h *MessageHandler) handleCustomerDeleteCancel(ctx context.Context, update 
 
 	customer, err := h.getCustomerByMaxID(ctx, fmt.Sprintf("%d", userID))
 	if err != nil || customer == nil {
+		if err != nil {
+			h.logger.Error("failed to fetch customer profile after delete cancel", zap.Error(err), zap.Int64("user_id", userID))
+		} else {
+			h.logger.Info("customer profile not found after delete cancel", zap.Int64("user_id", userID))
+		}
 		h.showCustomerEmptyMenu(ctx, chatID, userID, "")
 		return
 	}
