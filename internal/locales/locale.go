@@ -25,8 +25,16 @@ type Messages struct {
 	CustomerTypeBusinessLabel      string   `json:"customer_type_business_label"`
 	CustomerNamePrompt             string   `json:"customer_name_prompt"`
 	CustomerNameRetryText          string   `json:"customer_name_retry_text"`
+	CustomerNamePromptIndividual   string   `json:"customer_name_prompt_individual"`
+	CustomerNamePromptBusiness     string   `json:"customer_name_prompt_business"`
+	CustomerNameRetryIndividual    string   `json:"customer_name_retry_individual"`
+	CustomerNameRetryBusiness      string   `json:"customer_name_retry_business"`
 	CustomerAboutPrompt            string   `json:"customer_about_prompt"`
 	CustomerAboutRetryText         string   `json:"customer_about_retry_text"`
+	CustomerAboutPromptIndividual  string   `json:"customer_about_prompt_individual"`
+	CustomerAboutPromptBusiness    string   `json:"customer_about_prompt_business"`
+	CustomerAboutRetryIndividual   string   `json:"customer_about_retry_individual"`
+	CustomerAboutRetryBusiness     string   `json:"customer_about_retry_business"`
 	CustomerCreateSuccessText      string   `json:"customer_create_success_text"`
 	CustomerUpdateSuccessText      string   `json:"customer_update_success_text"`
 	CustomerSaveErrorText          string   `json:"customer_save_error_text"`
@@ -155,11 +163,35 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.CustomerNameRetryText != "" {
 		base.CustomerNameRetryText = overrides.CustomerNameRetryText
 	}
+	if overrides.CustomerNamePromptIndividual != "" {
+		base.CustomerNamePromptIndividual = overrides.CustomerNamePromptIndividual
+	}
+	if overrides.CustomerNamePromptBusiness != "" {
+		base.CustomerNamePromptBusiness = overrides.CustomerNamePromptBusiness
+	}
+	if overrides.CustomerNameRetryIndividual != "" {
+		base.CustomerNameRetryIndividual = overrides.CustomerNameRetryIndividual
+	}
+	if overrides.CustomerNameRetryBusiness != "" {
+		base.CustomerNameRetryBusiness = overrides.CustomerNameRetryBusiness
+	}
 	if overrides.CustomerAboutPrompt != "" {
 		base.CustomerAboutPrompt = overrides.CustomerAboutPrompt
 	}
 	if overrides.CustomerAboutRetryText != "" {
 		base.CustomerAboutRetryText = overrides.CustomerAboutRetryText
+	}
+	if overrides.CustomerAboutPromptIndividual != "" {
+		base.CustomerAboutPromptIndividual = overrides.CustomerAboutPromptIndividual
+	}
+	if overrides.CustomerAboutPromptBusiness != "" {
+		base.CustomerAboutPromptBusiness = overrides.CustomerAboutPromptBusiness
+	}
+	if overrides.CustomerAboutRetryIndividual != "" {
+		base.CustomerAboutRetryIndividual = overrides.CustomerAboutRetryIndividual
+	}
+	if overrides.CustomerAboutRetryBusiness != "" {
+		base.CustomerAboutRetryBusiness = overrides.CustomerAboutRetryBusiness
 	}
 	if overrides.CustomerCreateSuccessText != "" {
 		base.CustomerCreateSuccessText = overrides.CustomerCreateSuccessText
@@ -368,9 +400,17 @@ func defaultMessages() Messages {
 		CustomerTypeIndividualLabel:    "Частное лицо",
 		CustomerTypeBusinessLabel:      "Организация",
 		CustomerNamePrompt:             "Как вас зовут или как называется организация?",
+		CustomerNamePromptIndividual:   "Как вас зовут?",
+		CustomerNamePromptBusiness:     "Как называется ваша организация или фонд?",
 		CustomerNameRetryText:          "Пожалуйста, укажите имя или название.",
+		CustomerNameRetryIndividual:    "Пожалуйста, укажите имя.",
+		CustomerNameRetryBusiness:      "Пожалуйста, укажите название организации.",
 		CustomerAboutPrompt:            "Опишите, какая помощь нужна.",
+		CustomerAboutPromptIndividual:  "Опишите, какая помощь нужна лично вам или близкому.",
+		CustomerAboutPromptBusiness:    "Опишите, какая помощь нужна вашей организации.",
 		CustomerAboutRetryText:         "Пожалуйста, опишите, какая помощь нужна.",
+		CustomerAboutRetryIndividual:   "Пожалуйста, опишите, какая помощь нужна.",
+		CustomerAboutRetryBusiness:     "Пожалуйста, опишите, какая помощь нужна организации.",
 		CustomerCreateSuccessText:      "Спасибо! Профиль заказчика сохранён.",
 		CustomerUpdateSuccessText:      "Профиль заказчика обновлён.",
 		CustomerSaveErrorText:          "Не удалось сохранить профиль. Попробуйте позже.",

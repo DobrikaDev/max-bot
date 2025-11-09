@@ -23,10 +23,7 @@ func (h *MessageHandler) tryHandleCustomerMessage(ctx context.Context, update *s
 	switch session.Current {
 	case customerStepName:
 		if text == "" {
-			retry := h.messages.CustomerNameRetryText
-			if strings.TrimSpace(retry) == "" {
-				retry = "Пожалуйста, укажи имя или название."
-			}
+			retry := h.customerNameRetryText(session)
 			h.updateCustomerSessionMessage(ctx, session, retry, emptyKeyboard())
 			return true
 		}
@@ -37,10 +34,7 @@ func (h *MessageHandler) tryHandleCustomerMessage(ctx context.Context, update *s
 		h.promptCustomerAbout(ctx, session)
 	case customerStepAbout:
 		if text == "" {
-			retry := h.messages.CustomerAboutRetryText
-			if strings.TrimSpace(retry) == "" {
-				retry = "Пожалуйста, расскажи, какая помощь нужна."
-			}
+			retry := h.customerAboutRetryText(session)
 			h.updateCustomerSessionMessage(ctx, session, retry, emptyKeyboard())
 			return true
 		}
@@ -411,10 +405,7 @@ func (h *MessageHandler) handleCustomerTypeSelection(ctx context.Context, update
 }
 
 func (h *MessageHandler) promptCustomerName(ctx context.Context, session *customerSession) {
-	text := h.messages.CustomerNamePrompt
-	if strings.TrimSpace(text) == "" {
-		text = "Как тебя зовут? Если профиль для организации — укажи название."
-	}
+	text := h.customerNamePromptText(session)
 
 	if session.Existing && session.Name != "" {
 		text = fmt.Sprintf("%s\n\n*Сейчас:* %s", text, session.Name)
@@ -424,10 +415,7 @@ func (h *MessageHandler) promptCustomerName(ctx context.Context, session *custom
 }
 
 func (h *MessageHandler) promptCustomerAbout(ctx context.Context, session *customerSession) {
-	text := h.messages.CustomerAboutPrompt
-	if strings.TrimSpace(text) == "" {
-		text = "Опиши, какая помощь нужна."
-	}
+	text := h.customerAboutPromptText(session)
 
 	if session.Existing && session.About != "" {
 		text = fmt.Sprintf("%s\n\n*Сейчас:* %s", text, session.About)
@@ -634,6 +622,90 @@ func (h *MessageHandler) customerTypeLabel(customerType customerpb.CustomerType)
 	default:
 		return ""
 	}
+}
+
+func (h *MessageHandler) customerNamePromptText(session *customerSession) string {
+	if session != nil {
+		switch session.Type {
+		case customerpb.CustomerType_CUSTOMER_TYPE_INDIVIDUAL:
+			if text := strings.TrimSpace(h.messages.CustomerNamePromptIndividual); text != "" {
+				return text
+			}
+		case customerpb.CustomerType_CUSTOMER_TYPE_BUSINESS:
+			if text := strings.TrimSpace(h.messages.CustomerNamePromptBusiness); text != "" {
+				return text
+			}
+		}
+	}
+
+	if text := strings.TrimSpace(h.messages.CustomerNamePrompt); text != "" {
+		return text
+	}
+
+	return "Как тебя зовут?"
+}
+
+func (h *MessageHandler) customerNameRetryText(session *customerSession) string {
+	if session != nil {
+		switch session.Type {
+		case customerpb.CustomerType_CUSTOMER_TYPE_INDIVIDUAL:
+			if text := strings.TrimSpace(h.messages.CustomerNameRetryIndividual); text != "" {
+				return text
+			}
+		case customerpb.CustomerType_CUSTOMER_TYPE_BUSINESS:
+			if text := strings.TrimSpace(h.messages.CustomerNameRetryBusiness); text != "" {
+				return text
+			}
+		}
+	}
+
+	if text := strings.TrimSpace(h.messages.CustomerNameRetryText); text != "" {
+		return text
+	}
+
+	return "Нужно указать имя или название."
+}
+
+func (h *MessageHandler) customerAboutPromptText(session *customerSession) string {
+	if session != nil {
+		switch session.Type {
+		case customerpb.CustomerType_CUSTOMER_TYPE_INDIVIDUAL:
+			if text := strings.TrimSpace(h.messages.CustomerAboutPromptIndividual); text != "" {
+				return text
+			}
+		case customerpb.CustomerType_CUSTOMER_TYPE_BUSINESS:
+			if text := strings.TrimSpace(h.messages.CustomerAboutPromptBusiness); text != "" {
+				return text
+			}
+		}
+	}
+
+	if text := strings.TrimSpace(h.messages.CustomerAboutPrompt); text != "" {
+		return text
+	}
+
+	return "Опиши, какая помощь нужна."
+}
+
+func (h *MessageHandler) customerAboutRetryText(session *customerSession) string {
+	if session != nil {
+		switch session.Type {
+		case customerpb.CustomerType_CUSTOMER_TYPE_INDIVIDUAL:
+			if text := strings.TrimSpace(h.messages.CustomerAboutRetryIndividual); text != "" {
+				return text
+			}
+		case customerpb.CustomerType_CUSTOMER_TYPE_BUSINESS:
+			if text := strings.TrimSpace(h.messages.CustomerAboutRetryBusiness); text != "" {
+				return text
+			}
+		}
+	}
+
+	if text := strings.TrimSpace(h.messages.CustomerAboutRetryText); text != "" {
+		return text
+	}
+
+	return "Пожалуйста, расскажи, какая помощь нужна."
 }
 
 func (h *MessageHandler) updateCustomerSessionMessage(ctx context.Context, session *customerSession, text string, keyboard *maxbot.Keyboard) {
