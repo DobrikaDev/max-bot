@@ -51,6 +51,7 @@ type Messages struct {
 	VolunteerMenuTasksButton          string   `json:"volunteer_menu_tasks_button"`
 	VolunteerMenuProfileButton        string   `json:"volunteer_menu_profile_button"`
 	VolunteerMenuBackButton           string   `json:"volunteer_menu_back_button"`
+	VolunteerMenuMainButton           string   `json:"volunteer_menu_main_button"`
 	VolunteerOnDemandPlaceholder      string   `json:"volunteer_on_demand_placeholder"`
 	VolunteerTasksPlaceholder         string   `json:"volunteer_tasks_placeholder"`
 	CustomerDeleteConfirmText         string   `json:"customer_delete_confirm_text"`
@@ -261,6 +262,9 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.VolunteerMenuBackButton != "" {
 		base.VolunteerMenuBackButton = overrides.VolunteerMenuBackButton
 	}
+	if overrides.VolunteerMenuMainButton != "" {
+		base.VolunteerMenuMainButton = overrides.VolunteerMenuMainButton
+	}
 	if overrides.VolunteerOnDemandPlaceholder != "" {
 		base.VolunteerOnDemandPlaceholder = overrides.VolunteerOnDemandPlaceholder
 	}
@@ -470,7 +474,8 @@ func defaultMessages() Messages {
 		VolunteerMenuOnDemandButton:       "По запросу",
 		VolunteerMenuTasksButton:          "Список дел",
 		VolunteerMenuProfileButton:        "Мой профиль",
-		VolunteerMenuBackButton:           "Главное меню",
+		VolunteerMenuBackButton:           "Назад",
+		VolunteerMenuMainButton:           "Главное меню",
 		VolunteerOnDemandPlaceholder:      "Раздел «По запросу» в разработке. Скоро здесь появятся обращения от людей рядом 💚",
 		VolunteerTasksPlaceholder:         "Список дел появится скоро. Здесь будут доступные добрые дела.",
 		CustomerDeleteConfirmText:         "Удалить профиль заказчика?",

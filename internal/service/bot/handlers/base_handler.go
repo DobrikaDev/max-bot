@@ -406,6 +406,12 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 		h.showVolunteerMenu(ctx, chatID, userID)
 	case callbackMainMenuAbout:
 		h.showAboutDobrikaMenu(ctx, chatID, userID)
+	case callbackVolunteerOnDemand:
+		h.showVolunteerPlaceholder(ctx, chatID, userID, h.messages.VolunteerOnDemandPlaceholder)
+	case callbackVolunteerTasks:
+		h.showVolunteerPlaceholder(ctx, chatID, userID, h.messages.VolunteerTasksPlaceholder)
+	case callbackVolunteerBack:
+		h.showVolunteerMenu(ctx, chatID, userID)
 	case callbackProfileCoins:
 		h.showProfileCoinsMenu(ctx, chatID, userID)
 	case callbackProfileHistory:
@@ -474,9 +480,36 @@ func (h *MessageHandler) showVolunteerMenu(ctx context.Context, chatID, userID i
 	keyboard.AddRow().
 		AddCallback(h.messages.VolunteerMenuProfileButton, schemes.DEFAULT, callbackMainMenuProfile)
 	keyboard.AddRow().
-		AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackProfileBack)
+		AddCallback(h.messages.VolunteerMenuMainButton, schemes.DEFAULT, callbackProfileBack)
 
 	h.renderMenu(ctx, chatID, userID, text, keyboard)
+}
+
+func (h *MessageHandler) showVolunteerPlaceholder(ctx context.Context, chatID, userID int64, text string) {
+	if strings.TrimSpace(text) == "" {
+		text = "Раздел скоро появится 💚"
+	}
+
+	h.renderMenu(ctx, chatID, userID, text, h.volunteerBackKeyboard())
+}
+
+func (h *MessageHandler) volunteerBackKeyboard() *maxbot.Keyboard {
+	backLabel := h.messages.VolunteerMenuBackButton
+	if strings.TrimSpace(backLabel) == "" {
+		backLabel = "⬅️ Назад"
+	}
+	mainLabel := h.messages.VolunteerMenuMainButton
+	if strings.TrimSpace(mainLabel) == "" {
+		mainLabel = "🏠 Главное меню"
+	}
+
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddCallback(backLabel, schemes.DEFAULT, callbackVolunteerBack)
+	keyboard.AddRow().
+		AddCallback(mainLabel, schemes.DEFAULT, callbackProfileBack)
+
+	return keyboard
 }
 
 func (h *MessageHandler) showProfileHistory(ctx context.Context, chatID, userID int64) {
