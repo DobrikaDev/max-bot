@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	customerpb "DobrikaDev/max-bot/internal/generated/customerpb"
 	userpb "DobrikaDev/max-bot/internal/generated/userpb"
 	"DobrikaDev/max-bot/internal/locales"
 	"DobrikaDev/max-bot/utils/config"
@@ -28,10 +29,12 @@ type MessageHandler struct {
 	cfg      *config.Config
 	logger   *zap.Logger
 	user     userpb.UserServiceClient
+	customer customerpb.CustomerServiceClient
 	messages locales.Messages
 
-	sessions *sessionStore
-	menus    *menuStore
+	sessions         *sessionStore
+	customerSessions *customerSessionStore
+	menus            *menuStore
 
 	httpClient *http.Client
 	apiBaseURL string
@@ -48,14 +51,15 @@ type messageEditPayload struct {
 
 func NewMessageHandler(api *maxbot.Api, cfg *config.Config, logger *zap.Logger) *MessageHandler {
 	handler := &MessageHandler{
-		api:        api,
-		cfg:        cfg,
-		logger:     logger,
-		sessions:   newSessionStore(),
-		menus:      newMenuStore(),
-		httpClient: &http.Client{Timeout: 10 * time.Second},
-		apiBaseURL: "https://botapi.max.ru",
-		apiVersion: "1.2.5",
+		api:              api,
+		cfg:              cfg,
+		logger:           logger,
+		sessions:         newSessionStore(),
+		customerSessions: newCustomerSessionStore(),
+		menus:            newMenuStore(),
+		httpClient:       &http.Client{Timeout: 10 * time.Second},
+		apiBaseURL:       "https://botapi.max.ru",
+		apiVersion:       "1.2.5",
 	}
 
 	msgs, err := locales.Load()
@@ -70,16 +74,20 @@ func NewMessageHandler(api *maxbot.Api, cfg *config.Config, logger *zap.Logger) 
 
 	if cfg.UserServiceURL == "" {
 		logger.Warn("user service URL is not configured; registration completion will be skipped")
-		return handler
-	}
-
-	conn, err := grpc.Dial(cfg.UserServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
+	} else if conn, err := grpc.Dial(cfg.UserServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials())); err != nil {
 		logger.Error("failed to connect to user service", zap.Error(err))
-		return handler
+	} else {
+		handler.user = userpb.NewUserServiceClient(conn)
 	}
 
-	handler.user = userpb.NewUserServiceClient(conn)
+	if cfg.CustomerServiceURL == "" {
+		logger.Warn("customer service URL is not configured; need help flow will be disabled")
+	} else if conn, err := grpc.Dial(cfg.CustomerServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials())); err != nil {
+		logger.Error("failed to connect to customer service", zap.Error(err))
+	} else {
+		handler.customer = customerpb.NewCustomerServiceClient(conn)
+	}
+
 	return handler
 }
 
@@ -87,6 +95,10 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message *schemes.Mes
 	h.logger.Info("Received message", zap.Any("message", message))
 
 	if !h.ensureUserContext(ctx, message) {
+		return
+	}
+
+	if h.tryHandleCustomerMessage(ctx, message) {
 		return
 	}
 
@@ -108,6 +120,10 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message *schemes.Mes
 func (h *MessageHandler) HandleCallbackQuery(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate) {
 	h.logger.Info("Received callback query", zap.Any("callbackQuery", callbackQuery))
 	if h.tryHandleRegistrationCallback(ctx, callbackQuery) {
+		return
+	}
+
+	if h.tryHandleCustomerCallback(ctx, callbackQuery) {
 		return
 	}
 
@@ -384,8 +400,6 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 		h.showProfile(ctx, chatID, userID)
 	case callbackMainMenuHelp:
 		h.renderMenu(ctx, chatID, userID, "Раздел «Хочу помочь» скоро появится 💚", h.singleButtonKeyboard(h.messages.ProfileBackButton, callbackProfileBack))
-	case callbackMainMenuNeedHelp:
-		h.renderMenu(ctx, chatID, userID, "Скоро здесь можно будет попросить помощь сообщества Добрики.", h.singleButtonKeyboard(h.messages.ProfileBackButton, callbackProfileBack))
 	case callbackMainMenuAbout:
 		h.showAboutDobrikaMenu(ctx, chatID, userID)
 	case callbackProfileCoins:

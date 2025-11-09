@@ -31,4 +31,12 @@ const (
 	callbackRegistrationSkipLocation = "registration:location:skip"
 	callbackRegistrationAboutToggle  = "registration:about:toggle"
 	callbackRegistrationAboutConfirm = "registration:about:confirm"
+	callbackCustomerTypeIndividual   = "customer:type:individual"
+	callbackCustomerTypeBusiness     = "customer:type:business"
+	callbackCustomerManageCreate     = "customer:manage:create"
+	callbackCustomerManageUpdate     = "customer:manage:update"
+	callbackCustomerManageDelete     = "customer:manage:delete"
+	callbackCustomerManageBack       = "customer:manage:back"
+	callbackCustomerDeleteConfirm    = "customer:delete:confirm"
+	callbackCustomerDeleteCancel     = "customer:delete:cancel"
 )

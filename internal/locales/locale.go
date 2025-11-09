@@ -13,6 +13,32 @@ var rawRU []byte
 type Messages struct {
 	MainMenuText                   string   `json:"main_menu_text"`
 	MainMenuButtons                []string `json:"main_menu_buttons"`
+	CustomerServiceUnavailableText string   `json:"customer_service_unavailable_text"`
+	CustomerLookupErrorText        string   `json:"customer_lookup_error_text"`
+	CustomerFormIntroText          string   `json:"customer_form_intro_text"`
+	CustomerSummaryTitle           string   `json:"customer_summary_title"`
+	CustomerSummaryTemplate        string   `json:"customer_summary_template"`
+	CustomerTypePrompt             string   `json:"customer_type_prompt"`
+	CustomerTypeIndividualButton   string   `json:"customer_type_individual_button"`
+	CustomerTypeBusinessButton     string   `json:"customer_type_business_button"`
+	CustomerTypeIndividualLabel    string   `json:"customer_type_individual_label"`
+	CustomerTypeBusinessLabel      string   `json:"customer_type_business_label"`
+	CustomerNamePrompt             string   `json:"customer_name_prompt"`
+	CustomerNameRetryText          string   `json:"customer_name_retry_text"`
+	CustomerAboutPrompt            string   `json:"customer_about_prompt"`
+	CustomerAboutRetryText         string   `json:"customer_about_retry_text"`
+	CustomerCreateSuccessText      string   `json:"customer_create_success_text"`
+	CustomerUpdateSuccessText      string   `json:"customer_update_success_text"`
+	CustomerSaveErrorText          string   `json:"customer_save_error_text"`
+	CustomerManageCreateButton     string   `json:"customer_manage_create_button"`
+	CustomerManageUpdateButton     string   `json:"customer_manage_update_button"`
+	CustomerManageDeleteButton     string   `json:"customer_manage_delete_button"`
+	CustomerManageBackButton       string   `json:"customer_manage_back_button"`
+	CustomerDeleteConfirmText      string   `json:"customer_delete_confirm_text"`
+	CustomerDeleteConfirmButton    string   `json:"customer_delete_confirm_button"`
+	CustomerDeleteCancelButton     string   `json:"customer_delete_cancel_button"`
+	CustomerDeleteSuccessText      string   `json:"customer_delete_success_text"`
+	CustomerDeleteErrorText        string   `json:"customer_delete_error_text"`
 	ProfileTitle                   string   `json:"profile_title"`
 	ProfileSkillsTitle             string   `json:"profile_skills_title"`
 	ProfileLevelBalanceTemplate    string   `json:"profile_level_balance_template"`
@@ -92,6 +118,84 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if len(overrides.MainMenuButtons) > 0 {
 		base.MainMenuButtons = overrides.MainMenuButtons
+	}
+	if overrides.CustomerServiceUnavailableText != "" {
+		base.CustomerServiceUnavailableText = overrides.CustomerServiceUnavailableText
+	}
+	if overrides.CustomerLookupErrorText != "" {
+		base.CustomerLookupErrorText = overrides.CustomerLookupErrorText
+	}
+	if overrides.CustomerFormIntroText != "" {
+		base.CustomerFormIntroText = overrides.CustomerFormIntroText
+	}
+	if overrides.CustomerSummaryTitle != "" {
+		base.CustomerSummaryTitle = overrides.CustomerSummaryTitle
+	}
+	if overrides.CustomerSummaryTemplate != "" {
+		base.CustomerSummaryTemplate = overrides.CustomerSummaryTemplate
+	}
+	if overrides.CustomerTypePrompt != "" {
+		base.CustomerTypePrompt = overrides.CustomerTypePrompt
+	}
+	if overrides.CustomerTypeIndividualButton != "" {
+		base.CustomerTypeIndividualButton = overrides.CustomerTypeIndividualButton
+	}
+	if overrides.CustomerTypeBusinessButton != "" {
+		base.CustomerTypeBusinessButton = overrides.CustomerTypeBusinessButton
+	}
+	if overrides.CustomerTypeIndividualLabel != "" {
+		base.CustomerTypeIndividualLabel = overrides.CustomerTypeIndividualLabel
+	}
+	if overrides.CustomerTypeBusinessLabel != "" {
+		base.CustomerTypeBusinessLabel = overrides.CustomerTypeBusinessLabel
+	}
+	if overrides.CustomerNamePrompt != "" {
+		base.CustomerNamePrompt = overrides.CustomerNamePrompt
+	}
+	if overrides.CustomerNameRetryText != "" {
+		base.CustomerNameRetryText = overrides.CustomerNameRetryText
+	}
+	if overrides.CustomerAboutPrompt != "" {
+		base.CustomerAboutPrompt = overrides.CustomerAboutPrompt
+	}
+	if overrides.CustomerAboutRetryText != "" {
+		base.CustomerAboutRetryText = overrides.CustomerAboutRetryText
+	}
+	if overrides.CustomerCreateSuccessText != "" {
+		base.CustomerCreateSuccessText = overrides.CustomerCreateSuccessText
+	}
+	if overrides.CustomerUpdateSuccessText != "" {
+		base.CustomerUpdateSuccessText = overrides.CustomerUpdateSuccessText
+	}
+	if overrides.CustomerSaveErrorText != "" {
+		base.CustomerSaveErrorText = overrides.CustomerSaveErrorText
+	}
+	if overrides.CustomerManageCreateButton != "" {
+		base.CustomerManageCreateButton = overrides.CustomerManageCreateButton
+	}
+	if overrides.CustomerManageUpdateButton != "" {
+		base.CustomerManageUpdateButton = overrides.CustomerManageUpdateButton
+	}
+	if overrides.CustomerManageDeleteButton != "" {
+		base.CustomerManageDeleteButton = overrides.CustomerManageDeleteButton
+	}
+	if overrides.CustomerManageBackButton != "" {
+		base.CustomerManageBackButton = overrides.CustomerManageBackButton
+	}
+	if overrides.CustomerDeleteConfirmText != "" {
+		base.CustomerDeleteConfirmText = overrides.CustomerDeleteConfirmText
+	}
+	if overrides.CustomerDeleteConfirmButton != "" {
+		base.CustomerDeleteConfirmButton = overrides.CustomerDeleteConfirmButton
+	}
+	if overrides.CustomerDeleteCancelButton != "" {
+		base.CustomerDeleteCancelButton = overrides.CustomerDeleteCancelButton
+	}
+	if overrides.CustomerDeleteSuccessText != "" {
+		base.CustomerDeleteSuccessText = overrides.CustomerDeleteSuccessText
+	}
+	if overrides.CustomerDeleteErrorText != "" {
+		base.CustomerDeleteErrorText = overrides.CustomerDeleteErrorText
 	}
 	if overrides.ProfileTitle != "" {
 		base.ProfileTitle = overrides.ProfileTitle
@@ -253,21 +357,47 @@ func defaultMessages() Messages {
 			"Мой профиль",
 			"О Добрике",
 		},
-		ProfileTitle:                "👤 *Мой профиль*",
-		ProfileSkillsTitle:          "Навыки и интересы:",
-		ProfileLevelBalanceTemplate: "🎖 Уровень: *%s*\n💰 Репутация: *%d* добриков",
-		ProfileHistoryButton:        "📜 История дел",
-		ProfileEditButton:           "✏️ Редактировать",
-		ProfileSecurityButton:       "🛡 Безопасность",
-		ProfileBackButton:           "⬅️ Назад в меню",
-		ProfileCoinsButton:          "💰 Добрики",
-		ProfileHistoryText:          "История добрых дел появится совсем скоро 💚",
-		ProfileEditText:             "Редактирование профиля появится в ближайшем обновлении.",
-		ProfileSecurityTitle:        "🛡 Безопасность встреч офлайн",
-		ProfileSecurityText:         "• Назначайте встречи только в людных местах\n• Делитесь планами с близкими\n• Пользуйтесь кнопкой SOS в экстренных ситуациях\n\nВсе правила и контакты: %s",
-		ProfileSecuritySOSButton:    "🚨 Открыть памятку",
-		ProfileSecuritySOSLink:      "https://dobrika.example/safety",
-		AboutDobrikaText:            "Добрика — бот добрых дел. Здесь можно помогать другим и получать добрики за сделанное добро.",
+		CustomerServiceUnavailableText: "Сервис заказчиков недоступен. Попробуйте позже.",
+		CustomerLookupErrorText:        "Не удалось получить данные заказчика. Попробуйте позже.",
+		CustomerFormIntroText:          "Расскажите о заказчике. Заполните профиль, чтобы волонтёры быстрее откликнулись.",
+		CustomerSummaryTitle:           "Профиль заказчика:",
+		CustomerSummaryTemplate:        "*Тип:* %s\n*Имя или название:* %s\n*Описание запроса:* %s",
+		CustomerTypePrompt:             "Кто обращается за помощью?",
+		CustomerTypeIndividualButton:   "Частное лицо",
+		CustomerTypeBusinessButton:     "Организация",
+		CustomerTypeIndividualLabel:    "Частное лицо",
+		CustomerTypeBusinessLabel:      "Организация",
+		CustomerNamePrompt:             "Как вас зовут или как называется организация?",
+		CustomerNameRetryText:          "Пожалуйста, укажите имя или название.",
+		CustomerAboutPrompt:            "Опишите, какая помощь нужна.",
+		CustomerAboutRetryText:         "Пожалуйста, опишите, какая помощь нужна.",
+		CustomerCreateSuccessText:      "Спасибо! Профиль заказчика сохранён.",
+		CustomerUpdateSuccessText:      "Профиль заказчика обновлён.",
+		CustomerSaveErrorText:          "Не удалось сохранить профиль. Попробуйте позже.",
+		CustomerManageCreateButton:     "Заполнить профиль",
+		CustomerManageUpdateButton:     "Обновить профиль",
+		CustomerManageDeleteButton:     "Удалить профиль",
+		CustomerManageBackButton:       "⬅️ Назад в меню",
+		CustomerDeleteConfirmText:      "Удалить профиль заказчика?",
+		CustomerDeleteConfirmButton:    "Удалить профиль",
+		CustomerDeleteCancelButton:     "Отмена",
+		CustomerDeleteSuccessText:      "Профиль заказчика удалён.",
+		CustomerDeleteErrorText:        "Не удалось удалить профиль. Попробуйте позже.",
+		ProfileTitle:                   "👤 *Мой профиль*",
+		ProfileSkillsTitle:             "Навыки и интересы:",
+		ProfileLevelBalanceTemplate:    "🎖 Уровень: *%s*\n💰 Репутация: *%d* добриков",
+		ProfileHistoryButton:           "📜 История дел",
+		ProfileEditButton:              "✏️ Редактировать",
+		ProfileSecurityButton:          "🛡 Безопасность",
+		ProfileBackButton:              "⬅️ Назад в меню",
+		ProfileCoinsButton:             "💰 Добрики",
+		ProfileHistoryText:             "История добрых дел появится совсем скоро 💚",
+		ProfileEditText:                "Редактирование профиля появится в ближайшем обновлении.",
+		ProfileSecurityTitle:           "🛡 Безопасность встреч офлайн",
+		ProfileSecurityText:            "• Назначайте встречи только в людных местах\n• Делитесь планами с близкими\n• Пользуйтесь кнопкой SOS в экстренных ситуациях\n\nВсе правила и контакты: %s",
+		ProfileSecuritySOSButton:       "🚨 Открыть памятку",
+		ProfileSecuritySOSLink:         "https://dobrika.example/safety",
+		AboutDobrikaText:               "Добрика — бот добрых дел. Здесь можно помогать другим и получать добрики за сделанное добро.",
 		AboutDobrikaButtons: []string{
 			"💚 Как это работает",
 			"🧭 Правила и безопасность",

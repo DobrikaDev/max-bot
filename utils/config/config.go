@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	MaxToken       string `mapstructure:"max_token" env:"MAX_TOKEN"`
-	UserServiceURL string `mapstructure:"user_service_url" env:"USER_SERVICE_URL"`
+	MaxToken          string `mapstructure:"max_token" env:"MAX_TOKEN"`
+	UserServiceURL    string `mapstructure:"user_service_url" env:"USER_SERVICE_URL"`
+	CustomerServiceURL string `mapstructure:"customer_service_url" env:"CUSTOMER_SERVICE_URL"`
 }
 
 func LoadConfigFromFile(path string) (*Config, error) {

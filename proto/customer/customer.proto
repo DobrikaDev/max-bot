@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package customer;
+
+option go_package = "DobrikaDev/max-bot/internal/generated/customerpb";
+
+service CustomerService {
+    rpc CreateCustomer(CreateCustomerRequest) returns (CreateCustomerResponse);
+    rpc GetCustomers(GetCustomersRequest) returns (GetCustomersResponse);
+    rpc GetCustomerByMaxID(GetCustomerByMaxIDRequest) returns (GetCustomerByMaxIDResponse);
+    rpc UpdateCustomer(UpdateCustomerRequest) returns (UpdateCustomerResponse);
+    rpc DeleteCustomer(DeleteCustomerRequest) returns (DeleteCustomerResponse);
+    rpc CreateFeedback(CreateFeedbackRequest) returns (CreateFeedbackResponse);
+    rpc GetFeedbacks(GetFeedbacksRequest) returns (GetFeedbacksResponse);
+    rpc CountFeedbacks(CountFeedbacksRequest) returns (CountFeedbacksResponse);
+    rpc GetFeedbackByID(GetFeedbackByIDRequest) returns (GetFeedbackByIDResponse);
+}
+
+message GetFeedbackByIDRequest {
+    string id = 1;
+}
+message GetFeedbackByIDResponse {
+    Feedback Feedback = 1;
+    Error error = 2;
+}
+message CreateFeedbackRequest {
+    Feedback Feedback = 1;
+}
+message CreateFeedbackResponse {
+    Feedback Feedback = 1;
+    Error error = 2;
+}
+message GetFeedbacksRequest {
+    string task_id = 1;
+    string user_id = 2;
+    int32 limit = 3;
+    int32 offset = 4;
+}
+
+message GetFeedbacksResponse {
+    repeated Feedback Feedbacks = 1;
+    int32 total = 2;
+    Error error = 3;
+}
+
+message CountFeedbacksRequest {
+    string task_id = 1;
+    string user_id = 2;
+}
+
+message CountFeedbacksResponse {
+    int32 total = 1;
+    Error error = 2;
+}
+
+message Feedback {
+    string id = 1;
+    int32 rating = 2;
+    string comment = 3;
+    string task_id = 4;
+    string user_id = 5;
+    string customer_id = 6;
+    int32 created_at = 7;
+    int32 updated_at = 8;
+}
+
+message Customer {
+    string max_id = 1;
+    string name = 2;
+    string about = 3;
+    CustomerType type = 4;
+    int32 created_at = 5;
+    int32 updated_at = 6;
+}
+
+enum CustomerType {
+    CUSTOMER_TYPE_UNSPECIFIED = 0;
+    CUSTOMER_TYPE_INDIVIDUAL = 1;
+    CUSTOMER_TYPE_BUSINESS = 2;
+}
+
+message CreateCustomerRequest {
+    Customer Customer = 1;
+}
+message GetCustomersRequest {
+    string max_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+}
+
+message GetCustomersResponse {
+    repeated Customer Customers = 1;
+    int32 total = 2;
+    Error error = 3;
+}
+
+message GetCustomerByMaxIDRequest {
+    string max_id = 1;
+}
+
+message GetCustomerByMaxIDResponse {
+    Customer Customer = 1;
+    Error error = 2;
+}
+message UpdateCustomerRequest {
+    Customer Customer = 1;
+}
+
+message UpdateCustomerResponse {
+    Customer Customer = 1;
+    Error error = 2;
+}
+
+message DeleteCustomerRequest {
+    string max_id = 1;
+}
+
+message DeleteCustomerResponse {
+    string max_id = 1;
+    Error error = 2;
+}
+
+message CreateCustomerResponse {
+    Customer Customer = 1;
+    Error error = 2;
+}
+
+message Error {
+    ErrorCode code = 1;
+    string message = 2;
+}
+enum ErrorCode {
+    ERROR_CODE_UNSPECIFIED = 0;
+    ERROR_CODE_VALIDATION = 1;
+    ERROR_CODE_NOT_FOUND = 2;
+    ERROR_CODE_INTERNAL = 3;
+    ERROR_CODE_ALREADY_EXISTS = 4;
+    ERROR_CODE_NOT_ENOUGH = 5;
+}

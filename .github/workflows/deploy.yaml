@@ -52,12 +52,13 @@ jobs:
           echo "${KUBECONFIG_BASE64}" | base64 --decode > "${HOME}/.kube/config"
         env:
           KUBECONFIG_BASE64: ${{ secrets.KUBECONFIG_BASE64 }}
-          
+
 
       - name: Apply Kubernetes manifests
         env:
           MAX_TOKEN: ${{ secrets.MAX_TOKEN }}
           USER_SERVICE_URL: user-service.default.svc.cluster.local:8081
+          CUSTOMER_SERVICE_URL: customer-service.default.svc.cluster.local:8081
         run: |
           envsubst < deployments/k8s/configmap.yaml | kubectl apply -f -
           kubectl apply -f deployments/k8s/service.yaml
