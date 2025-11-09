@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: max-bot-config
+  namespace: default
+data:
+  config.yaml: |
+    max_token: ${MAX_TOKEN}
+    user_service_url: ${USER_SERVICE_URL}
+

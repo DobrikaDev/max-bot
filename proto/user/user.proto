@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "DobrikaDev/max-bot/internal/generated/userpb";
+
+service UserService {
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+    rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
+    rpc GetUserByMaxID(GetUserByMaxIDRequest) returns (GetUserByMaxIDResponse);
+    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+
+    rpc GetReputationGroups(GetReputationGroupsRequest) returns (GetReputationGroupsResponse);
+    rpc GetReputationGroupByID(GetReputationGroupByIDRequest) returns (GetReputationGroupByIDResponse);
+
+    rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+    rpc GetBalanceOperations(GetBalanceOperationsRequest) returns (GetBalanceOperationsResponse);
+    rpc CreateOperation(CreateOperationRequest) returns (CreateOperationResponse);
+}
+
+message GetBalanceRequest {
+    string max_id = 1;
+}
+message GetBalanceResponse {
+    int32 balance = 1;
+    Error error = 2;
+}
+message GetBalanceOperationsRequest {
+    string max_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+}
+message GetBalanceOperationsResponse {
+    repeated BalanceOperation operations = 1;
+    int32 total = 2;
+    Error error = 3;
+}
+
+message CreateOperationRequest {
+    string max_id = 1;
+    int32 amount = 2;
+    BalanceOperationType type = 3;
+    string description = 4;
+}
+message CreateOperationResponse {
+    BalanceOperation operation = 1;
+    Error error = 2;
+}
+
+message BalanceOperation {
+    string id = 1;
+    string balance_id = 2;
+    int32 amount = 3;
+    BalanceOperationType type = 4;
+    string description = 5;
+    int32 created_at = 6;
+}
+
+enum BalanceOperationType {
+    BALANCE_OPERATION_TYPE_UNSPECIFIED = 0;
+    BALANCE_OPERATION_TYPE_DEPOSIT = 1;
+    BALANCE_OPERATION_TYPE_WITHDRAW = 2;
+}
+
+message User {
+    reserved 1;
+    string max_id = 2;
+    string name = 3;
+    string geolocation = 4;
+    int32 age = 5;
+    Sex sex = 6;
+    string about = 7;
+    Role role = 8;
+    Status status = 9;
+    ReputationGroup reputation_group = 10;
+}
+
+message ReputationGroup {
+    int32 id = 1;
+    string name = 2;
+    string description = 3;
+    double coefficient = 4;
+    int32 reputation_need = 5;
+}
+
+message GetReputationGroupsRequest {
+}
+message GetReputationGroupsResponse {
+    repeated ReputationGroup reputation_groups = 1;
+    Error error = 2;
+}
+
+message GetReputationGroupByIDRequest {
+    int32 id = 1;
+}
+message GetReputationGroupByIDResponse {
+    ReputationGroup reputation_group = 1;
+    Error error = 2;
+}
+
+enum Sex {
+    SEX_UNSPECIFIED = 0;
+    SEX_MALE = 1;
+    SEX_FEMALE = 2;
+}
+enum Role {
+    ROLE_UNSPECIFIED = 0;
+    ROLE_USER = 1;
+    ROLE_ADMIN = 2;
+}
+enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_ACTIVE = 1;
+    STATUS_INACTIVE = 2;
+}
+message CreateUserRequest {
+    User user = 1;
+}
+message GetUsersRequest {
+    string max_id = 1;
+    Status status = 2;
+    Role role = 3;
+    int32 limit = 4;
+    int32 offset = 5;
+}
+
+message GetUsersResponse {
+    repeated User users = 1;
+    int32 total = 2;
+    Error error = 3;
+}
+
+message GetUserByMaxIDRequest {
+    string max_id = 1;
+}
+
+message GetUserByMaxIDResponse {
+    User user = 1;
+    Error error = 2;
+}
+message UpdateUserRequest {
+    User user = 1;
+}
+
+message UpdateUserResponse {
+    User user = 1;
+    Error error = 2;
+}
+
+message DeleteUserRequest {
+    string max_id = 1;
+}
+
+message DeleteUserResponse {
+    string max_id = 1;
+    Error error = 2;
+}
+
+message CreateUserResponse {
+    User user = 1;
+    Error error = 2;
+}
+
+message Error {
+    ErrorCode code = 1;
+    string message = 2;
+}
+enum ErrorCode {
+    ERROR_CODE_UNSPECIFIED = 0;
+    ERROR_CODE_VALIDATION = 1;
+    ERROR_CODE_NOT_FOUND = 2;
+    ERROR_CODE_INTERNAL = 3;
+    ERROR_CODE_ALREADY_EXISTS = 4;
+    ERROR_CODE_NOT_ENOUGH = 5;
+}
