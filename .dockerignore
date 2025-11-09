@@ -1,0 +1,14 @@
+.git
+.github
+bin
+dist
+tmp
+*.log
+*.swp
+*.swo
+*.tmp
+node_modules
+vendor
+**/__pycache__
+coverage
+
