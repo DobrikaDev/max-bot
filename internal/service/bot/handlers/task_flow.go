@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -22,6 +25,18 @@ const (
 	taskStepComplete
 )
 
+const (
+	taskListPageSize = 10
+)
+
+type volunteerTasksViewMode string
+
+const (
+	volunteerTasksViewModeNone     volunteerTasksViewMode = ""
+	volunteerTasksViewModeAll      volunteerTasksViewMode = "all"
+	volunteerTasksViewModeOnDemand volunteerTasksViewMode = "on_demand"
+)
+
 type taskCreationSession struct {
 	UserID      int64
 	ChatID      int64
@@ -39,6 +54,16 @@ func (s *taskCreationSession) isInProgress() bool {
 type taskSessionStore struct {
 	mu       sync.RWMutex
 	sessions map[int64]*taskCreationSession
+}
+
+type taskAssignment struct {
+	UserID string
+	Status string
+}
+
+type taskAssignmentJSON struct {
+	UserID string `json:"user_id"`
+	Status string `json:"status"`
 }
 
 func newTaskSessionStore() *taskSessionStore {
@@ -127,7 +152,40 @@ func (h *MessageHandler) handleCustomerManageTasks(ctx context.Context, update *
 		return
 	}
 
-	h.showCustomerTasksMenu(ctx, chatID, userID, strings.TrimSpace(customer.GetMaxId()))
+	h.showCustomerTasksMenu(ctx, chatID, userID, strings.TrimSpace(customer.GetMaxId()), 0)
+}
+
+func (h *MessageHandler) handleCustomerTasksPage(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, payload string) {
+	h.answerCallback(ctx, callbackQuery.Callback.CallbackID)
+
+	if callbackQuery.Message == nil {
+		return
+	}
+
+	parts := strings.Split(payload, ":")
+	if len(parts) != 2 {
+		h.logger.Debug("invalid customer tasks page payload", zap.String("payload", payload))
+		return
+	}
+
+	customerID := strings.TrimSpace(parts[0])
+	page, err := strconv.Atoi(parts[1])
+	if err != nil {
+		h.logger.Warn("failed to parse customer tasks page", zap.Error(err), zap.String("payload", payload))
+		page = 0
+	}
+	if page < 0 {
+		page = 0
+	}
+
+	chatID := callbackQuery.Message.Recipient.ChatId
+	userID := callbackQuery.Callback.User.UserId
+
+	if customerID == "" {
+		customerID = fmt.Sprintf("%d", userID)
+	}
+
+	h.showCustomerTasksMenu(ctx, chatID, userID, customerID, page)
 }
 
 func (h *MessageHandler) handleCustomerManageCreateTask(ctx context.Context, update *schemes.MessageCallbackUpdate) {
@@ -211,7 +269,7 @@ func (h *MessageHandler) finalizeTaskCreation(ctx context.Context, session *task
 	h.taskSessions.delete(session.UserID)
 
 	success := h.taskCreateSuccessText(session.Name)
-	h.showCustomerTasksMenu(ctx, session.ChatID, session.UserID, session.CustomerID, success)
+	h.showCustomerTasksMenu(ctx, session.ChatID, session.UserID, session.CustomerID, 0, success)
 }
 
 func (h *MessageHandler) sendTaskSessionMessage(ctx context.Context, session *taskCreationSession, text string, keyboard *maxbot.Keyboard) {
@@ -225,16 +283,20 @@ func (h *MessageHandler) sendTaskSessionMessage(ctx context.Context, session *ta
 	h.taskSessions.upsert(session)
 }
 
-func (h *MessageHandler) showCustomerTasksMenu(ctx context.Context, chatID, userID int64, customerID string, intro ...string) {
-	text, keyboard := h.buildCustomerTasksView(ctx, customerID, intro...)
+func (h *MessageHandler) showCustomerTasksMenu(ctx context.Context, chatID, userID int64, customerID string, page int, intro ...string) {
+	text, keyboard := h.buildCustomerTasksView(ctx, customerID, page, intro...)
 	h.renderMenu(ctx, chatID, userID, text, keyboard)
 }
 
-func (h *MessageHandler) buildCustomerTasksView(ctx context.Context, customerID string, intro ...string) (string, *maxbot.Keyboard) {
+func (h *MessageHandler) buildCustomerTasksView(ctx context.Context, customerID string, page int, intro ...string) (string, *maxbot.Keyboard) {
 	var builder strings.Builder
 	if len(intro) > 0 && strings.TrimSpace(intro[0]) != "" {
 		builder.WriteString(strings.TrimSpace(intro[0]))
 		builder.WriteString("\n\n")
+	}
+
+	if page < 0 {
+		page = 0
 	}
 
 	if h.task == nil {
@@ -242,7 +304,10 @@ func (h *MessageHandler) buildCustomerTasksView(ctx context.Context, customerID 
 		return builder.String(), h.customerBackKeyboard()
 	}
 
-	resp, err := h.task.GetTasks(ctx, &taskpb.GetTasksRequest{CustomerId: customerID, Limit: 10, Offset: 0})
+	limit := int32(taskListPageSize)
+	offset := int32(page * taskListPageSize)
+
+	resp, err := h.task.GetTasks(ctx, &taskpb.GetTasksRequest{CustomerId: customerID, Limit: limit, Offset: offset})
 	if err != nil {
 		h.logger.Error("failed to get tasks", zap.Error(err), zap.String("customer_id", customerID))
 		builder.WriteString(h.taskFetchErrorText())
@@ -255,7 +320,33 @@ func (h *MessageHandler) buildCustomerTasksView(ctx context.Context, customerID 
 		return builder.String(), h.customerBackKeyboard()
 	}
 
+	total := int(resp.GetTotal())
 	tasks := resp.GetTasks()
+
+	if len(tasks) == 0 && total > 0 && offset >= int32(total) && page > 0 {
+		page = (total - 1) / taskListPageSize
+		if page < 0 {
+			page = 0
+		}
+		offset = int32(page * taskListPageSize)
+
+		resp, err = h.task.GetTasks(ctx, &taskpb.GetTasksRequest{CustomerId: customerID, Limit: limit, Offset: offset})
+		if err != nil {
+			h.logger.Error("failed to get tasks after page adjustment", zap.Error(err), zap.String("customer_id", customerID))
+			builder.WriteString(h.taskFetchErrorText())
+			return builder.String(), h.customerBackKeyboard()
+		}
+
+		if resp.GetError() != nil {
+			h.logger.Warn("task service returned error on adjusted list", zap.String("message", resp.GetError().GetMessage()))
+			builder.WriteString(h.taskFetchErrorText())
+			return builder.String(), h.customerBackKeyboard()
+		}
+
+		total = int(resp.GetTotal())
+		tasks = resp.GetTasks()
+	}
+
 	keyboard := h.api.Messages.NewKeyboardBuilder()
 
 	if len(tasks) == 0 {
@@ -267,6 +358,7 @@ func (h *MessageHandler) buildCustomerTasksView(ctx context.Context, customerID 
 			builder.WriteString("\n\n")
 		}
 		itemTemplate := h.customerTaskItemTemplate()
+		startIndex := int(offset)
 		for idx, task := range tasks {
 			name := strings.TrimSpace(task.GetName())
 			if name == "" {
@@ -279,9 +371,49 @@ func (h *MessageHandler) buildCustomerTasksView(ctx context.Context, customerID 
 			builder.WriteString(fmt.Sprintf(itemTemplate, name, description))
 			builder.WriteString("\n")
 
-			label := truncateLabel(fmt.Sprintf("%d. %s", idx+1, name), 40)
+			label := truncateLabel(fmt.Sprintf("%d. %s", startIndex+idx+1, name), 40)
 			keyboard.AddRow().
 				AddCallback(label, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackCustomerTaskView, task.GetId()))
+		}
+
+		if total > taskListPageSize {
+			footerTemplate := strings.TrimSpace(h.messages.CustomerTasksPageFooter)
+			if footerTemplate == "" {
+				footerTemplate = "Страница %d из %d"
+			}
+			totalPages := 1
+			if total > 0 {
+				totalPages = (total + taskListPageSize - 1) / taskListPageSize
+			}
+			builder.WriteString("\n")
+			builder.WriteString(fmt.Sprintf(footerTemplate, page+1, totalPages))
+			builder.WriteString("\n")
+		}
+	}
+
+	hasPrev := page > 0
+	hasNext := false
+	if total > 0 {
+		hasNext = (page+1)*taskListPageSize < total
+	} else if len(tasks) == taskListPageSize {
+		hasNext = true
+	}
+
+	if len(tasks) > 0 && (hasPrev || hasNext) {
+		prevLabel := strings.TrimSpace(h.messages.CustomerTasksPrevButton)
+		if prevLabel == "" {
+			prevLabel = "⬅️ Назад"
+		}
+		nextLabel := strings.TrimSpace(h.messages.CustomerTasksNextButton)
+		if nextLabel == "" {
+			nextLabel = "➡️ Далее"
+		}
+		row := keyboard.AddRow()
+		if hasPrev {
+			row.AddCallback(prevLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%d", callbackCustomerTasksPage, customerID, page-1))
+		}
+		if hasNext {
+			row.AddCallback(nextLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%d", callbackCustomerTasksPage, customerID, page+1))
 		}
 	}
 
@@ -302,15 +434,24 @@ func (h *MessageHandler) buildCustomerTasksView(ctx context.Context, customerID 
 	return builder.String(), keyboard
 }
 
-func (h *MessageHandler) showVolunteerTasksList(ctx context.Context, chatID, userID int64, intro string) {
-	text, keyboard := h.buildVolunteerTasksView(ctx, intro)
+func (h *MessageHandler) showVolunteerTasksList(ctx context.Context, chatID, userID int64, mode volunteerTasksViewMode, intro string, page int) {
+	text, keyboard := h.buildVolunteerTasksView(ctx, userID, mode, intro, page)
 	h.renderMenu(ctx, chatID, userID, text, keyboard)
 }
 
-func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, intro string) (string, *maxbot.Keyboard) {
+func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int64, mode volunteerTasksViewMode, intro string, page int) (string, *maxbot.Keyboard) {
 	var builder strings.Builder
-	if strings.TrimSpace(intro) != "" {
-		builder.WriteString(strings.TrimSpace(intro))
+	displayIntro := strings.TrimSpace(intro)
+	if displayIntro == "" {
+		switch mode {
+		case volunteerTasksViewModeAll:
+			displayIntro = strings.TrimSpace(h.messages.VolunteerTasksPlaceholder)
+		case volunteerTasksViewModeOnDemand:
+			displayIntro = strings.TrimSpace(h.messages.VolunteerOnDemandPlaceholder)
+		}
+	}
+	if displayIntro != "" {
+		builder.WriteString(displayIntro)
 		builder.WriteString("\n\n")
 	}
 
@@ -319,7 +460,14 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, intro stri
 		return builder.String(), h.volunteerBackKeyboard()
 	}
 
-	resp, err := h.task.GetTasks(ctx, &taskpb.GetTasksRequest{Limit: 10, Offset: 0})
+	if page < 0 {
+		page = 0
+	}
+
+	limit := int32(taskListPageSize)
+	offset := int32(page * taskListPageSize)
+
+	resp, err := h.task.GetTasks(ctx, &taskpb.GetTasksRequest{Limit: limit, Offset: offset})
 	if err != nil {
 		h.logger.Error("failed to fetch tasks for volunteer list", zap.Error(err))
 		builder.WriteString(h.volunteerTasksErrorText())
@@ -332,36 +480,156 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, intro stri
 		return builder.String(), h.volunteerBackKeyboard()
 	}
 
+	total := int(resp.GetTotal())
 	tasks := resp.GetTasks()
-	if len(tasks) == 0 {
-		builder.WriteString(h.volunteerTasksEmptyText())
-	} else {
-		itemTemplate := h.volunteerTaskItemTemplate()
-		keyboard := h.api.Messages.NewKeyboardBuilder()
-		for idx, task := range tasks {
-			name := strings.TrimSpace(task.GetName())
-			if name == "" {
-				name = "Без названия"
-			}
-			description := strings.TrimSpace(task.GetDescription())
-			if description == "" {
-				description = "Описание отсутствует"
-			}
-			builder.WriteString(fmt.Sprintf(itemTemplate, name, description))
-			builder.WriteString("\n")
 
-			label := truncateLabel(fmt.Sprintf("%d. %s", idx+1, name), 40)
-			keyboard.AddRow().
-				AddCallback(label, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskView, task.GetId()))
+	if len(tasks) == 0 && total > 0 && offset >= int32(total) && page > 0 {
+		page = (total - 1) / taskListPageSize
+		if page < 0 {
+			page = 0
 		}
-		keyboard.AddRow().
-			AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
-		keyboard.AddRow().
-			AddCallback(h.messages.VolunteerMenuMainButton, schemes.DEFAULT, callbackProfileBack)
-		return builder.String(), keyboard
+		offset = int32(page * taskListPageSize)
+
+		resp, err = h.task.GetTasks(ctx, &taskpb.GetTasksRequest{Limit: limit, Offset: offset})
+		if err != nil {
+			h.logger.Error("failed to fetch tasks after page adjustment", zap.Error(err))
+			builder.WriteString(h.volunteerTasksErrorText())
+			return builder.String(), h.volunteerBackKeyboard()
+		}
+
+		if resp.GetError() != nil {
+			h.logger.Warn("task service returned error for volunteer list after adjustment", zap.String("message", resp.GetError().GetMessage()))
+			builder.WriteString(h.volunteerTasksErrorText())
+			return builder.String(), h.volunteerBackKeyboard()
+		}
+
+		total = int(resp.GetTotal())
+		tasks = resp.GetTasks()
 	}
 
-	return builder.String(), h.volunteerBackKeyboard()
+	if len(tasks) == 0 {
+		builder.WriteString(h.volunteerTasksEmptyText())
+		return builder.String(), h.volunteerBackKeyboard()
+	}
+
+	userIDStr := fmt.Sprintf("%d", userID)
+	itemTemplate := h.volunteerTaskItemTemplate()
+
+	type taskEntry struct {
+		task   *taskpb.Task
+		status string
+	}
+
+	var (
+		joined    []taskEntry
+		available []taskEntry
+	)
+
+	for _, task := range tasks {
+		assignments := parseTaskAssignments(task)
+		status := assignmentStatusForUser(assignments, userIDStr)
+		entry := taskEntry{task: task, status: status}
+		if status == "" || isStatusRejected(status) {
+			available = append(available, entry)
+		} else {
+			joined = append(joined, entry)
+		}
+	}
+
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	sectionIndex := 1
+
+	if len(joined) > 0 {
+		builder.WriteString("🌟 *Мои отклики:*\n")
+		for _, entry := range joined {
+			name := safeTaskName(entry.task.GetName())
+			description := safeTaskDescription(entry.task.GetDescription())
+			builder.WriteString(fmt.Sprintf(itemTemplate, name, description))
+			if label := volunteerStatusLabel(entry.status); label != "" {
+				builder.WriteString("\nСтатус: ")
+				builder.WriteString(label)
+				builder.WriteString("\n")
+			}
+			builder.WriteString("\n")
+
+			buttonLabel := truncateLabel(fmt.Sprintf("%d. %s %s", sectionIndex, name, volunteerStatusBadge(entry.status)), 45)
+			keyboard.AddRow().
+				AddCallback(buttonLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskView, entry.task.GetId()))
+			sectionIndex++
+		}
+	}
+
+	if len(available) > 0 {
+		if sectionIndex > 1 {
+			builder.WriteString("────────────────────\n")
+		}
+		builder.WriteString("📋 *Свободные дела:*\n")
+		for _, entry := range available {
+			name := safeTaskName(entry.task.GetName())
+			description := safeTaskDescription(entry.task.GetDescription())
+			builder.WriteString(fmt.Sprintf(itemTemplate, name, description))
+			if entry.status != "" {
+				builder.WriteString("\nСтатус: ")
+				builder.WriteString(volunteerStatusLabel(entry.status))
+				builder.WriteString("\n")
+			}
+			builder.WriteString("\n")
+
+			buttonLabel := truncateLabel(fmt.Sprintf("%d. %s %s", sectionIndex, name, volunteerStatusBadge(entry.status)), 45)
+			keyboard.AddRow().
+				AddCallback(buttonLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskView, entry.task.GetId()))
+			sectionIndex++
+		}
+	}
+
+	if mode != "" {
+		if total > taskListPageSize {
+			footer := strings.TrimSpace(h.messages.VolunteerTasksPageFooter)
+			if footer == "" {
+				footer = "Страница %d из %d"
+			}
+			totalPages := (total + taskListPageSize - 1) / taskListPageSize
+			if totalPages < 1 {
+				totalPages = 1
+			}
+			builder.WriteString("\n")
+			builder.WriteString(fmt.Sprintf(footer, page+1, totalPages))
+			builder.WriteString("\n")
+		}
+
+		hasPrev := page > 0
+		hasNext := false
+		if total > 0 {
+			hasNext = (page+1)*taskListPageSize < total
+		} else if len(tasks) == taskListPageSize {
+			hasNext = true
+		}
+
+		if len(tasks) > 0 && (hasPrev || hasNext) {
+			prevLabel := strings.TrimSpace(h.messages.VolunteerTasksPrevButton)
+			if prevLabel == "" {
+				prevLabel = "⬅️ Назад"
+			}
+			nextLabel := strings.TrimSpace(h.messages.VolunteerTasksNextButton)
+			if nextLabel == "" {
+				nextLabel = "➡️ Далее"
+			}
+			row := keyboard.AddRow()
+			if hasPrev {
+				row.AddCallback(prevLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%d", callbackVolunteerTasksPage, mode, page-1))
+			}
+			if hasNext {
+				row.AddCallback(nextLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%d", callbackVolunteerTasksPage, mode, page+1))
+			}
+		}
+	}
+
+	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
+	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuMainButton, schemes.DEFAULT, callbackProfileBack)
+
+	return builder.String(), keyboard
 }
 
 func (h *MessageHandler) taskCreateNamePromptText() string {
@@ -472,6 +740,41 @@ func (h *MessageHandler) volunteerTaskItemTemplate() string {
 	return "• *%s*\n%s"
 }
 
+func (h *MessageHandler) handleVolunteerTasksPage(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, payload string) {
+	h.answerCallback(ctx, callbackQuery.Callback.CallbackID)
+
+	if callbackQuery.Message == nil {
+		return
+	}
+
+	parts := strings.Split(payload, ":")
+	if len(parts) != 2 {
+		h.logger.Debug("invalid volunteer tasks page payload", zap.String("payload", payload))
+		return
+	}
+
+	mode := volunteerTasksViewMode(strings.TrimSpace(parts[0]))
+	switch mode {
+	case volunteerTasksViewModeAll, volunteerTasksViewModeOnDemand:
+	default:
+		mode = volunteerTasksViewModeAll
+	}
+
+	page, err := strconv.Atoi(parts[1])
+	if err != nil {
+		h.logger.Warn("failed to parse volunteer tasks page", zap.Error(err), zap.String("payload", payload))
+		page = 0
+	}
+	if page < 0 {
+		page = 0
+	}
+
+	chatID := callbackQuery.Message.Recipient.ChatId
+	userID := callbackQuery.Callback.User.UserId
+
+	h.showVolunteerTasksList(ctx, chatID, userID, mode, "", page)
+}
+
 func (h *MessageHandler) handleVolunteerTaskView(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, taskID string) {
 	h.answerCallback(ctx, callbackQuery.Callback.CallbackID)
 
@@ -493,7 +796,7 @@ func (h *MessageHandler) handleVolunteerTaskJoin(ctx context.Context, callbackQu
 	}
 
 	if h.task == nil {
-		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, h.volunteerTasksUnavailableText())
+		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, volunteerTasksViewModeNone, h.volunteerTasksUnavailableText(), 0)
 		return
 	}
 
@@ -517,7 +820,7 @@ func (h *MessageHandler) handleVolunteerTaskLeave(ctx context.Context, callbackQ
 	}
 
 	if h.task == nil {
-		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, h.volunteerTasksUnavailableText())
+		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, volunteerTasksViewModeNone, h.volunteerTasksUnavailableText(), 0)
 		return
 	}
 
@@ -541,7 +844,7 @@ func (h *MessageHandler) handleVolunteerTaskConfirm(ctx context.Context, callbac
 	}
 
 	if h.task == nil {
-		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, h.volunteerTasksUnavailableText())
+		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, volunteerTasksViewModeNone, h.volunteerTasksUnavailableText(), 0)
 		return
 	}
 
@@ -559,14 +862,14 @@ func (h *MessageHandler) handleVolunteerTaskConfirm(ctx context.Context, callbac
 
 func (h *MessageHandler) showVolunteerTaskDetail(ctx context.Context, chatID, userID int64, taskID string, intro ...string) {
 	if h.task == nil {
-		h.showVolunteerTasksList(ctx, chatID, userID, h.volunteerTasksUnavailableText())
+		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeNone, h.volunteerTasksUnavailableText(), 0)
 		return
 	}
 
 	task, err := h.getTaskByID(ctx, taskID)
 	if err != nil || task == nil {
 		h.logger.Error("failed to fetch task detail", zap.Error(err), zap.String("task_id", taskID))
-		h.showVolunteerTasksList(ctx, chatID, userID, h.volunteerTasksErrorText())
+		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeNone, h.volunteerTasksErrorText(), 0)
 		return
 	}
 
@@ -581,20 +884,22 @@ func (h *MessageHandler) showVolunteerTaskDetail(ctx context.Context, chatID, us
 		title = "*%s*"
 	}
 
-	name := strings.TrimSpace(task.GetName())
-	if name == "" {
-		name = "Без названия"
-	}
+	name := safeTaskName(task.GetName())
 	builder.WriteString(fmt.Sprintf(title, name))
 	builder.WriteString("\n\n")
 
-	description := strings.TrimSpace(task.GetDescription())
-	if description == "" {
-		description = "Описание отсутствует"
+	builder.WriteString(safeTaskDescription(task.GetDescription()))
+
+	assignments := parseTaskAssignments(task)
+	userIDStr := fmt.Sprintf("%d", userID)
+	status := assignmentStatusForUser(assignments, userIDStr)
+	if statusLabel := volunteerStatusLabel(status); statusLabel != "" {
+		builder.WriteString("\n\n*Статус:* ")
+		builder.WriteString(statusLabel)
 	}
-	builder.WriteString(description)
 
 	keyboard := h.api.Messages.NewKeyboardBuilder()
+
 	joinLabel := h.messages.VolunteerTaskJoinButton
 	if strings.TrimSpace(joinLabel) == "" {
 		joinLabel = "Откликнуться"
@@ -612,11 +917,21 @@ func (h *MessageHandler) showVolunteerTaskDetail(ctx context.Context, chatID, us
 		backLabel = "⬅️ К списку"
 	}
 
-	keyboard.AddRow().
-		AddCallback(joinLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s", callbackVolunteerTaskJoin, taskID))
-	keyboard.AddRow().
-		AddCallback(leaveLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskLeave, taskID)).
-		AddCallback(confirmLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s", callbackVolunteerTaskConfirm, taskID))
+	if allowVolunteerJoin(status) {
+		keyboard.AddRow().
+			AddCallback(joinLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s", callbackVolunteerTaskJoin, taskID))
+	}
+
+	if allowVolunteerLeave(status) {
+		keyboard.AddRow().
+			AddCallback(leaveLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskLeave, taskID))
+	}
+
+	if allowVolunteerConfirm(status) {
+		keyboard.AddRow().
+			AddCallback(confirmLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s", callbackVolunteerTaskConfirm, taskID))
+	}
+
 	keyboard.AddRow().
 		AddCallback(backLabel, schemes.DEFAULT, callbackVolunteerTasks)
 	keyboard.AddRow().
@@ -638,10 +953,15 @@ func (h *MessageHandler) handleCustomerTaskView(ctx context.Context, callbackQue
 	h.showCustomerTaskDetail(ctx, chatID, userID, taskID)
 }
 
-func (h *MessageHandler) handleCustomerTaskApprove(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, taskID string) {
+func (h *MessageHandler) handleCustomerTaskApprove(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, data string) {
 	h.answerCallback(ctx, callbackQuery.Callback.CallbackID)
 
-	if callbackQuery.Message == nil || taskID == "" {
+	if callbackQuery.Message == nil || data == "" {
+		return
+	}
+
+	taskID, volunteerID, ok := splitTaskAssignmentData(data)
+	if !ok {
 		return
 	}
 
@@ -650,22 +970,26 @@ func (h *MessageHandler) handleCustomerTaskApprove(ctx context.Context, callback
 		return
 	}
 
-	userID := fmt.Sprintf("%d", callbackQuery.Callback.User.UserId)
 	chatID := callbackQuery.Message.Recipient.ChatId
 
-	resp, err := h.task.ApproveTask(ctx, &taskpb.ApproveTaskRequest{UserId: userID, TaskId: taskID})
+	resp, err := h.task.ApproveTask(ctx, &taskpb.ApproveTaskRequest{UserId: volunteerID, TaskId: taskID})
 	if err != nil || (resp != nil && resp.GetError() != nil) {
-		h.showCustomerTaskDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, h.messages.CustomerTaskDecisionErrorText)
+		h.showCustomerTaskAssignmentDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, volunteerID, h.messages.CustomerTaskDecisionErrorText)
 		return
 	}
 
-	h.showCustomerTaskDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, h.messages.CustomerTaskApproveSuccessText)
+	h.showCustomerTaskAssignmentDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, volunteerID, h.messages.CustomerTaskApproveSuccessText)
 }
 
-func (h *MessageHandler) handleCustomerTaskReject(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, taskID string) {
+func (h *MessageHandler) handleCustomerTaskReject(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, data string) {
 	h.answerCallback(ctx, callbackQuery.Callback.CallbackID)
 
-	if callbackQuery.Message == nil || taskID == "" {
+	if callbackQuery.Message == nil || data == "" {
+		return
+	}
+
+	taskID, volunteerID, ok := splitTaskAssignmentData(data)
+	if !ok {
 		return
 	}
 
@@ -674,16 +998,15 @@ func (h *MessageHandler) handleCustomerTaskReject(ctx context.Context, callbackQ
 		return
 	}
 
-	userID := fmt.Sprintf("%d", callbackQuery.Callback.User.UserId)
 	chatID := callbackQuery.Message.Recipient.ChatId
 
-	resp, err := h.task.RejectTask(ctx, &taskpb.RejectTaskRequest{UserId: userID, TaskId: taskID})
+	resp, err := h.task.RejectTask(ctx, &taskpb.RejectTaskRequest{UserId: volunteerID, TaskId: taskID})
 	if err != nil || (resp != nil && resp.GetError() != nil) {
-		h.showCustomerTaskDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, h.messages.CustomerTaskDecisionErrorText)
+		h.showCustomerTaskAssignmentDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, volunteerID, h.messages.CustomerTaskDecisionErrorText)
 		return
 	}
 
-	h.showCustomerTaskDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, h.messages.CustomerTaskRejectSuccessText)
+	h.showCustomerTaskAssignmentDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, volunteerID, h.messages.CustomerTaskRejectSuccessText)
 }
 
 func (h *MessageHandler) showCustomerTaskDetail(ctx context.Context, chatID, userID int64, taskID string, intro ...string) {
@@ -705,35 +1028,52 @@ func (h *MessageHandler) showCustomerTaskDetail(ctx context.Context, chatID, use
 		title = "*%s*"
 	}
 
-	name := strings.TrimSpace(task.GetName())
-	if name == "" {
-		name = "Без названия"
-	}
+	name := safeTaskName(task.GetName())
 	builder.WriteString(fmt.Sprintf(title, name))
 	builder.WriteString("\n\n")
+	builder.WriteString(safeTaskDescription(task.GetDescription()))
+	builder.WriteString("\n\n")
 
-	description := strings.TrimSpace(task.GetDescription())
-	if description == "" {
-		description = "Описание отсутствует"
-	}
-	builder.WriteString(description)
-
-	approveLabel := h.messages.CustomerTaskApproveButton
-	if strings.TrimSpace(approveLabel) == "" {
-		approveLabel = "Подтвердить выполнение"
-	}
-	rejectLabel := h.messages.CustomerTaskRejectButton
-	if strings.TrimSpace(rejectLabel) == "" {
-		rejectLabel = "Отклонить"
-	}
-
+	assignments := parseTaskAssignments(task)
 	keyboard := h.api.Messages.NewKeyboardBuilder()
+
+	if len(assignments) == 0 {
+		builder.WriteString(h.customerTasksEmptyText())
+		builder.WriteString("\n")
+	} else {
+		builder.WriteString("🧑‍🤝‍🧑 *Откликнувшиеся:*\n")
+		namesCache := make(map[string]string, len(assignments))
+		for idx, assignment := range assignments {
+			if assignment.UserID == "" {
+				continue
+			}
+			displayName := namesCache[assignment.UserID]
+			if displayName == "" {
+				displayName = h.lookupUserName(ctx, assignment.UserID)
+				namesCache[assignment.UserID] = displayName
+			}
+			builder.WriteString(fmt.Sprintf("%s — %s\n", displayName, customerStatusLabel(assignment.Status)))
+
+			buttonLabel := truncateLabel(fmt.Sprintf("%d. %s %s", idx+1, displayName, volunteerStatusBadge(assignment.Status)), 45)
+			keyboard.AddRow().
+				AddCallback(buttonLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%s", callbackCustomerTaskAssignment, taskID, assignment.UserID))
+		}
+		builder.WriteString("\n")
+	}
+
+	createLabel := h.messages.CustomerManageCreateTaskButton
+	if strings.TrimSpace(createLabel) == "" {
+		createLabel = "Создать задачу"
+	}
+	backLabel := h.messages.CustomerManageBackButton
+	if strings.TrimSpace(backLabel) == "" {
+		backLabel = "⬅️ Назад"
+	}
+
 	keyboard.AddRow().
-		AddCallback(approveLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s", callbackCustomerTaskApprove, taskID))
+		AddCallback(createLabel, schemes.POSITIVE, callbackCustomerManageCreateTask)
 	keyboard.AddRow().
-		AddCallback(rejectLabel, schemes.NEGATIVE, fmt.Sprintf("%s:%s", callbackCustomerTaskReject, taskID))
-	keyboard.AddRow().
-		AddCallback(h.messages.CustomerManageTasksButton, schemes.DEFAULT, callbackCustomerManageTasks)
+		AddCallback(backLabel, schemes.DEFAULT, callbackCustomerManageBack)
 
 	h.renderMenu(ctx, chatID, userID, builder.String(), keyboard)
 }
@@ -744,6 +1084,352 @@ func truncateLabel(label string, max int) string {
 	}
 	runes := []rune(label)
 	return string(runes[:max-1]) + "…"
+}
+
+func (h *MessageHandler) handleCustomerTaskAssignment(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, data string) {
+	h.answerCallback(ctx, callbackQuery.Callback.CallbackID)
+
+	if callbackQuery.Message == nil || data == "" {
+		return
+	}
+
+	taskID, volunteerID, ok := splitTaskAssignmentData(data)
+	if !ok {
+		return
+	}
+
+	h.showCustomerTaskAssignmentDetail(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, taskID, volunteerID)
+}
+
+func (h *MessageHandler) showCustomerTaskAssignmentDetail(ctx context.Context, chatID, userID int64, taskID, volunteerID string, intro ...string) {
+	task, err := h.getTaskByID(ctx, taskID)
+	if err != nil || task == nil {
+		h.logger.Error("failed to fetch task detail", zap.Error(err), zap.String("task_id", taskID))
+		h.showCustomerTasksMenu(ctx, chatID, userID, fmt.Sprintf("%d", userID), 0, h.taskFetchErrorText())
+		return
+	}
+
+	assignments := parseTaskAssignments(task)
+	status := assignmentStatusForUser(assignments, volunteerID)
+	if status == "" {
+		h.showCustomerTaskDetail(ctx, chatID, userID, taskID, h.messages.CustomerTaskDecisionErrorText)
+		return
+	}
+
+	var builder strings.Builder
+	if len(intro) > 0 && strings.TrimSpace(intro[0]) != "" {
+		builder.WriteString(strings.TrimSpace(intro[0]))
+		builder.WriteString("\n\n")
+	}
+
+	title := h.messages.CustomerTaskDetailTitle
+	if strings.TrimSpace(title) == "" {
+		title = "*%s*"
+	}
+
+	taskName := safeTaskName(task.GetName())
+	builder.WriteString(fmt.Sprintf(title, taskName))
+	builder.WriteString("\n\n")
+
+	displayName := h.lookupUserName(ctx, volunteerID)
+	builder.WriteString(fmt.Sprintf("*Волонтёр:* %s\n", displayName))
+	builder.WriteString(fmt.Sprintf("*Статус:* %s\n\n", customerStatusLabel(status)))
+	builder.WriteString(safeTaskDescription(task.GetDescription()))
+
+	approveLabel := h.messages.CustomerTaskApproveButton
+	if strings.TrimSpace(approveLabel) == "" {
+		approveLabel = "Подтвердить выполнение"
+	}
+	rejectLabel := h.messages.CustomerTaskRejectButton
+	if strings.TrimSpace(rejectLabel) == "" {
+		rejectLabel = "Отклонить"
+	}
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddCallback(approveLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s:%s", callbackCustomerTaskApprove, taskID, volunteerID))
+	keyboard.AddRow().
+		AddCallback(rejectLabel, schemes.NEGATIVE, fmt.Sprintf("%s:%s:%s", callbackCustomerTaskReject, taskID, volunteerID))
+	keyboard.AddRow().
+		AddCallback(h.messages.CustomerManageTasksButton, schemes.DEFAULT, callbackCustomerManageTasks)
+	keyboard.AddRow().
+		AddCallback(h.messages.CustomerManageBackButton, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackCustomerTaskView, taskID))
+
+	h.renderMenu(ctx, chatID, userID, builder.String(), keyboard)
+}
+
+func splitTaskAssignmentData(data string) (string, string, bool) {
+	parts := strings.SplitN(strings.TrimSpace(data), ":", 2)
+	if len(parts) != 2 {
+		return "", "", false
+	}
+	taskID := strings.TrimSpace(parts[0])
+	volunteerID := strings.TrimSpace(parts[1])
+	if taskID == "" || volunteerID == "" {
+		return "", "", false
+	}
+	return taskID, volunteerID, true
+}
+
+func parseTaskAssignments(task *taskpb.Task) []taskAssignment {
+	if task == nil {
+		return nil
+	}
+
+	assignments := make(map[string]string)
+
+	for _, meta := range task.GetMeta() {
+		if meta == nil {
+			continue
+		}
+
+		key := strings.TrimSpace(meta.GetKey())
+		value := strings.TrimSpace(meta.GetValue())
+
+		if key == "" && value == "" {
+			continue
+		}
+
+		var arr []taskAssignmentJSON
+		if err := json.Unmarshal([]byte(value), &arr); err == nil && len(arr) > 0 {
+			for _, item := range arr {
+				if strings.TrimSpace(item.UserID) != "" {
+					assignments[strings.TrimSpace(item.UserID)] = strings.TrimSpace(item.Status)
+				}
+			}
+			continue
+		}
+
+		var single taskAssignmentJSON
+		if err := json.Unmarshal([]byte(value), &single); err == nil && strings.TrimSpace(single.UserID) != "" {
+			assignments[strings.TrimSpace(single.UserID)] = strings.TrimSpace(single.Status)
+			continue
+		}
+
+		if id, status := parseAssignmentValue(value); id != "" {
+			assignments[id] = status
+			continue
+		}
+
+		if id, status := parseAssignmentKeyValue(key, value); id != "" {
+			assignments[id] = status
+		}
+	}
+
+	result := make([]taskAssignment, 0, len(assignments))
+	for userID, status := range assignments {
+		result = append(result, taskAssignment{UserID: userID, Status: status})
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Status == result[j].Status {
+			return result[i].UserID < result[j].UserID
+		}
+		return result[i].Status < result[j].Status
+	})
+
+	return result
+}
+
+func parseAssignmentValue(value string) (string, string) {
+	if value == "" {
+		return "", ""
+	}
+
+	if strings.Contains(value, ":") {
+		parts := strings.Split(value, ":")
+		if len(parts) >= 2 {
+			userID := strings.TrimSpace(parts[0])
+			status := strings.TrimSpace(strings.Join(parts[1:], ":"))
+			if userID != "" {
+				return userID, status
+			}
+		}
+	}
+
+	if strings.Contains(value, "=") {
+		parts := strings.Split(value, "=")
+		if len(parts) >= 2 {
+			userID := strings.TrimSpace(parts[0])
+			status := strings.TrimSpace(strings.Join(parts[1:], "="))
+			if userID != "" {
+				return userID, status
+			}
+		}
+	}
+
+	return "", ""
+}
+
+func parseAssignmentKeyValue(key, value string) (string, string) {
+	if key == "" {
+		return "", ""
+	}
+
+	lower := strings.ToLower(key)
+	if !strings.Contains(lower, "user") {
+		return "", ""
+	}
+
+	userID := extractDigits(key)
+	if userID == "" {
+		parts := strings.Split(key, ":")
+		if len(parts) > 1 {
+			candidate := strings.TrimSpace(parts[len(parts)-1])
+			if candidate != "" && !strings.Contains(strings.ToLower(candidate), "status") && !strings.Contains(strings.ToLower(candidate), "user") {
+				userID = candidate
+			}
+		}
+	}
+
+	if userID == "" {
+		return "", ""
+	}
+
+	status := value
+	if status == "" {
+		status = statusFromKey(lower)
+	}
+
+	return userID, status
+}
+
+func extractDigits(input string) string {
+	var builder strings.Builder
+	for _, r := range input {
+		if r >= '0' && r <= '9' {
+			builder.WriteRune(r)
+		}
+	}
+	return builder.String()
+}
+
+func statusFromKey(key string) string {
+	switch {
+	case strings.Contains(key, "approve"):
+		return "approved"
+	case strings.Contains(key, "reject") || strings.Contains(key, "decline"):
+		return "rejected"
+	case strings.Contains(key, "confirm") || strings.Contains(key, "complete") || strings.Contains(key, "done"):
+		return "confirmed"
+	case strings.Contains(key, "pending") || strings.Contains(key, "wait"):
+		return "pending"
+	default:
+		return ""
+	}
+}
+
+func assignmentStatusForUser(assignments []taskAssignment, userID string) string {
+	for _, assignment := range assignments {
+		if assignment.UserID == userID {
+			return assignment.Status
+		}
+	}
+	return ""
+}
+
+func normalizeStatus(status string) string {
+	return strings.ToLower(strings.TrimSpace(status))
+}
+
+func volunteerStatusBadge(status string) string {
+	switch normalizeStatus(status) {
+	case "pending", "waiting", "new":
+		return "⏳"
+	case "approved", "accept", "accepted", "in_progress":
+		return "✅"
+	case "rejected", "declined", "cancelled":
+		return "❌"
+	case "confirmed", "completed", "done":
+		return "✨"
+	default:
+		return ""
+	}
+}
+
+func volunteerStatusLabel(status string) string {
+	switch normalizeStatus(status) {
+	case "":
+		return ""
+	case "pending", "waiting", "new":
+		return "⏳ ждёт подтверждения"
+	case "approved", "accept", "accepted", "in_progress":
+		return "✅ подтверждено заказчиком"
+	case "rejected", "declined", "cancelled":
+		return "❌ отклонено"
+	case "confirmed", "completed", "done":
+		return "✨ выполнено"
+	default:
+		return strings.Title(normalizeStatus(status))
+	}
+}
+
+func customerStatusLabel(status string) string {
+	switch normalizeStatus(status) {
+	case "":
+		return "—"
+	case "pending", "waiting", "new":
+		return "⏳ ждёт подтверждения"
+	case "approved", "accept", "accepted", "in_progress":
+		return "✅ ждёт подтверждения выполнения"
+	case "rejected", "declined", "cancelled":
+		return "❌ отклонено"
+	case "confirmed", "completed", "done":
+		return "✨ выполнено"
+	default:
+		return strings.Title(normalizeStatus(status))
+	}
+}
+
+func isStatusRejected(status string) bool {
+	switch normalizeStatus(status) {
+	case "rejected", "declined", "cancelled":
+		return true
+	default:
+		return false
+	}
+}
+
+func allowVolunteerJoin(status string) bool {
+	switch normalizeStatus(status) {
+	case "", "rejected", "declined", "cancelled":
+		return true
+	default:
+		return false
+	}
+}
+
+func allowVolunteerLeave(status string) bool {
+	switch normalizeStatus(status) {
+	case "", "rejected", "declined", "cancelled", "confirmed", "completed", "done":
+		return false
+	default:
+		return true
+	}
+}
+
+func allowVolunteerConfirm(status string) bool {
+	switch normalizeStatus(status) {
+	case "approved", "accept", "accepted", "in_progress":
+		return true
+	default:
+		return false
+	}
+}
+
+func safeTaskName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "Без названия"
+	}
+	return name
+}
+
+func safeTaskDescription(desc string) string {
+	desc = strings.TrimSpace(desc)
+	if desc == "" {
+		return "Описание отсутствует"
+	}
+	return desc
 }
 
 func (h *MessageHandler) getTaskByID(ctx context.Context, id string) (*taskpb.Task, error) {

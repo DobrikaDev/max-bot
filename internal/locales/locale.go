@@ -48,6 +48,9 @@ type Messages struct {
 	CustomerCreateTaskPlaceholderText string   `json:"customer_create_task_placeholder_text"`
 	CustomerTasksEmptyText            string   `json:"customer_tasks_empty_text"`
 	CustomerTaskItemTemplate          string   `json:"customer_task_item_template"`
+	CustomerTasksPrevButton           string   `json:"customer_tasks_prev_button"`
+	CustomerTasksNextButton           string   `json:"customer_tasks_next_button"`
+	CustomerTasksPageFooter           string   `json:"customer_tasks_page_footer"`
 	VolunteerMenuIntro                string   `json:"volunteer_menu_intro"`
 	VolunteerMenuOnDemandButton       string   `json:"volunteer_menu_on_demand_button"`
 	VolunteerMenuTasksButton          string   `json:"volunteer_menu_tasks_button"`
@@ -60,6 +63,9 @@ type Messages struct {
 	VolunteerTasksErrorText           string   `json:"volunteer_tasks_error_text"`
 	VolunteerTasksEmptyText           string   `json:"volunteer_tasks_empty_text"`
 	VolunteerTaskItemTemplate         string   `json:"volunteer_task_item_template"`
+	VolunteerTasksPrevButton          string   `json:"volunteer_tasks_prev_button"`
+	VolunteerTasksNextButton          string   `json:"volunteer_tasks_next_button"`
+	VolunteerTasksPageFooter          string   `json:"volunteer_tasks_page_footer"`
 	TaskServiceUnavailableText        string   `json:"task_service_unavailable_text"`
 	TaskFetchErrorText                string   `json:"task_fetch_error_text"`
 	TaskCreateNoCustomerText          string   `json:"task_create_no_customer_text"`
@@ -285,6 +291,15 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.CustomerTaskItemTemplate != "" {
 		base.CustomerTaskItemTemplate = overrides.CustomerTaskItemTemplate
 	}
+	if overrides.CustomerTasksPrevButton != "" {
+		base.CustomerTasksPrevButton = overrides.CustomerTasksPrevButton
+	}
+	if overrides.CustomerTasksNextButton != "" {
+		base.CustomerTasksNextButton = overrides.CustomerTasksNextButton
+	}
+	if overrides.CustomerTasksPageFooter != "" {
+		base.CustomerTasksPageFooter = overrides.CustomerTasksPageFooter
+	}
 	if overrides.VolunteerMenuIntro != "" {
 		base.VolunteerMenuIntro = overrides.VolunteerMenuIntro
 	}
@@ -320,6 +335,15 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if overrides.VolunteerTaskItemTemplate != "" {
 		base.VolunteerTaskItemTemplate = overrides.VolunteerTaskItemTemplate
+	}
+	if overrides.VolunteerTasksPrevButton != "" {
+		base.VolunteerTasksPrevButton = overrides.VolunteerTasksPrevButton
+	}
+	if overrides.VolunteerTasksNextButton != "" {
+		base.VolunteerTasksNextButton = overrides.VolunteerTasksNextButton
+	}
+	if overrides.VolunteerTasksPageFooter != "" {
+		base.VolunteerTasksPageFooter = overrides.VolunteerTasksPageFooter
 	}
 	if overrides.TaskServiceUnavailableText != "" {
 		base.TaskServiceUnavailableText = overrides.TaskServiceUnavailableText
@@ -600,6 +624,9 @@ func defaultMessages() Messages {
 		CustomerCreateTaskPlaceholderText: "Создание задач появится позже. Следите за обновлениями!",
 		CustomerTasksEmptyText:            "Пока задач нет. Создайте первое доброе дело!",
 		CustomerTaskItemTemplate:          "• *%s*\n%s",
+		CustomerTasksPrevButton:           "⬅️ Назад",
+		CustomerTasksNextButton:           "➡️ Далее",
+		CustomerTasksPageFooter:           "Страница %d из %d",
 		VolunteerMenuIntro:                "💚 Выберите, как хотите помочь:",
 		VolunteerMenuOnDemandButton:       "По запросу",
 		VolunteerMenuTasksButton:          "Список дел",
@@ -612,6 +639,9 @@ func defaultMessages() Messages {
 		VolunteerTasksErrorText:           "Не удалось получить список добрых дел. Попробуйте позже.",
 		VolunteerTasksEmptyText:           "Сейчас нет активных задач. Загляните позже!",
 		VolunteerTaskItemTemplate:         "• *%s*\n%s",
+		VolunteerTasksPrevButton:          "⬅️ Назад",
+		VolunteerTasksNextButton:          "➡️ Далее",
+		VolunteerTasksPageFooter:          "Страница %d из %d",
 		TaskServiceUnavailableText:        "Сервис задач недоступен. Попробуйте позже.",
 		TaskFetchErrorText:                "Не удалось получить список задач. Попробуйте позже.",
 		TaskCreateNoCustomerText:          "Сначала заполни профиль заказчика, чтобы создавать добрые дела.",

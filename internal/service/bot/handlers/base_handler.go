@@ -408,6 +408,9 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 	userID := callbackQuery.Callback.User.UserId
 
 	switch {
+	case strings.HasPrefix(payload, callbackVolunteerTasksPage+":"):
+		h.handleVolunteerTasksPage(ctx, callbackQuery, strings.TrimPrefix(payload, callbackVolunteerTasksPage+":"))
+		return true
 	case strings.HasPrefix(payload, callbackVolunteerTaskView+":"):
 		h.handleVolunteerTaskView(ctx, callbackQuery, strings.TrimPrefix(payload, callbackVolunteerTaskView+":"))
 		return true
@@ -420,8 +423,14 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 	case strings.HasPrefix(payload, callbackVolunteerTaskConfirm+":"):
 		h.handleVolunteerTaskConfirm(ctx, callbackQuery, strings.TrimPrefix(payload, callbackVolunteerTaskConfirm+":"))
 		return true
+	case strings.HasPrefix(payload, callbackCustomerTasksPage+":"):
+		h.handleCustomerTasksPage(ctx, callbackQuery, strings.TrimPrefix(payload, callbackCustomerTasksPage+":"))
+		return true
 	case strings.HasPrefix(payload, callbackCustomerTaskView+":"):
 		h.handleCustomerTaskView(ctx, callbackQuery, strings.TrimPrefix(payload, callbackCustomerTaskView+":"))
+		return true
+	case strings.HasPrefix(payload, callbackCustomerTaskAssignment+":"):
+		h.handleCustomerTaskAssignment(ctx, callbackQuery, strings.TrimPrefix(payload, callbackCustomerTaskAssignment+":"))
 		return true
 	case strings.HasPrefix(payload, callbackCustomerTaskApprove+":"):
 		h.handleCustomerTaskApprove(ctx, callbackQuery, strings.TrimPrefix(payload, callbackCustomerTaskApprove+":"))
@@ -439,9 +448,9 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 	case callbackMainMenuAbout:
 		h.showAboutDobrikaMenu(ctx, chatID, userID)
 	case callbackVolunteerOnDemand:
-		h.showVolunteerTasksList(ctx, chatID, userID, h.messages.VolunteerOnDemandPlaceholder)
+		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeOnDemand, "", 0)
 	case callbackVolunteerTasks:
-		h.showVolunteerTasksList(ctx, chatID, userID, h.messages.VolunteerTasksPlaceholder)
+		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeAll, "", 0)
 	case callbackVolunteerBack:
 		h.showVolunteerMenu(ctx, chatID, userID)
 	case callbackProfileCoins:
@@ -532,6 +541,29 @@ func (h *MessageHandler) volunteerBackKeyboard() *maxbot.Keyboard {
 		AddCallback(mainLabel, schemes.DEFAULT, callbackProfileBack)
 
 	return keyboard
+}
+
+func (h *MessageHandler) lookupUserName(ctx context.Context, maxID string) string {
+	maxID = strings.TrimSpace(maxID)
+	if maxID == "" {
+		return "Неизвестный волонтёр"
+	}
+
+	if h.user == nil {
+		return fmt.Sprintf("Пользователь %s", maxID)
+	}
+
+	resp, err := h.user.GetUserByMaxID(ctx, &userpb.GetUserByMaxIDRequest{MaxId: maxID})
+	if err != nil || resp.GetError() != nil || resp.GetUser() == nil {
+		return fmt.Sprintf("Пользователь %s", maxID)
+	}
+
+	name := strings.TrimSpace(resp.GetUser().GetName())
+	if name == "" {
+		return fmt.Sprintf("Пользователь %s", maxID)
+	}
+
+	return name
 }
 
 func (h *MessageHandler) showProfileHistory(ctx context.Context, chatID, userID int64) {
