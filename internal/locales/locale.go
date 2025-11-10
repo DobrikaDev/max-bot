@@ -64,6 +64,7 @@ type Messages struct {
 	VolunteerTasksErrorText           string   `json:"volunteer_tasks_error_text"`
 	VolunteerTasksEmptyText           string   `json:"volunteer_tasks_empty_text"`
 	VolunteerTaskItemTemplate         string   `json:"volunteer_task_item_template"`
+	VolunteerOnDemandEmptyText        string   `json:"volunteer_on_demand_empty_text"`
 	VolunteerTasksPrevButton          string   `json:"volunteer_tasks_prev_button"`
 	VolunteerTasksNextButton          string   `json:"volunteer_tasks_next_button"`
 	VolunteerTasksPageFooter          string   `json:"volunteer_tasks_page_footer"`
@@ -340,6 +341,9 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if overrides.VolunteerTaskItemTemplate != "" {
 		base.VolunteerTaskItemTemplate = overrides.VolunteerTaskItemTemplate
+	}
+	if overrides.VolunteerOnDemandEmptyText != "" {
+		base.VolunteerOnDemandEmptyText = overrides.VolunteerOnDemandEmptyText
 	}
 	if overrides.VolunteerTasksPrevButton != "" {
 		base.VolunteerTasksPrevButton = overrides.VolunteerTasksPrevButton
@@ -648,6 +652,7 @@ func defaultMessages() Messages {
 		VolunteerTasksErrorText:           "Не удалось получить список добрых дел. Попробуйте позже.",
 		VolunteerTasksEmptyText:           "Сейчас нет активных задач. Загляните позже!",
 		VolunteerTaskItemTemplate:         "• *%s*\n%s",
+		VolunteerOnDemandEmptyText:        "У тебя пока нет активных откликов.",
 		VolunteerTasksPrevButton:          "⬅️ Назад",
 		VolunteerTasksNextButton:          "➡️ Далее",
 		VolunteerTasksPageFooter:          "Страница %d из %d",

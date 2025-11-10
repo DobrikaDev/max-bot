@@ -27,7 +27,7 @@ const (
 )
 
 const (
-	taskListPageSize = 10
+	taskListPageSize = 5
 )
 
 type volunteerTasksViewMode string
@@ -504,7 +504,11 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 	}
 
 	if len(tasks) == 0 {
-		builder.WriteString(h.volunteerTasksEmptyText())
+		if mode == volunteerTasksViewModeOnDemand {
+			builder.WriteString(h.volunteerOnDemandEmptyText())
+		} else {
+			builder.WriteString(h.volunteerTasksEmptyText())
+		}
 		return builder.String(), h.volunteerBackKeyboard()
 	}
 
@@ -532,7 +536,16 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 	}
 
 	keyboard := h.api.Messages.NewKeyboardBuilder()
-	sectionIndex := 1
+	baseIndex := int(offset)
+	sectionIndex := baseIndex + 1
+
+	if mode == volunteerTasksViewModeOnDemand {
+		if len(joined) == 0 {
+			builder.WriteString(h.volunteerOnDemandEmptyText())
+			return builder.String(), h.volunteerBackKeyboard()
+		}
+		available = nil
+	}
 
 	if len(joined) > 0 {
 		builder.WriteString(fmt.Sprintf("🌟 *Мои отклики:* %d\n", len(joined)))
@@ -546,7 +559,7 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 	}
 
 	if len(available) > 0 {
-		if sectionIndex > 1 {
+		if sectionIndex > baseIndex+1 {
 			builder.WriteString("────────────────────\n")
 		}
 		builder.WriteString(fmt.Sprintf("📋 *Свободные дела:* %d\n", len(available)))
@@ -761,6 +774,13 @@ func (h *MessageHandler) volunteerTasksEmptyText() string {
 		return text
 	}
 	return "Сейчас нет активных задач. Загляните позже!"
+}
+
+func (h *MessageHandler) volunteerOnDemandEmptyText() string {
+	if text := strings.TrimSpace(h.messages.VolunteerOnDemandEmptyText); text != "" {
+		return text
+	}
+	return "У тебя пока нет активных откликов."
 }
 
 func (h *MessageHandler) volunteerTaskItemTemplate() string {
