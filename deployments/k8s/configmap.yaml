@@ -8,4 +8,5 @@ data:
     max_token: ${MAX_TOKEN}
     user_service_url: ${USER_SERVICE_URL}
     customer_service_url: ${CUSTOMER_SERVICE_URL}
+    task_service_url: ${TASK_SERVICE_URL}
 
