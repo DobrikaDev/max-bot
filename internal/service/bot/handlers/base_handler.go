@@ -164,20 +164,12 @@ func (h *MessageHandler) SendMainMenu(ctx context.Context, chatID, userID int64,
 	}
 
 	keyboard := h.api.Messages.NewKeyboardBuilder()
-	if len(h.messages.MainMenuButtons) >= 2 {
-		keyboard.AddRow().
-			AddCallback(h.messages.MainMenuButtons[0], schemes.POSITIVE, callbackMainMenuHelp)
-		keyboard.AddRow().
-			AddCallback(h.messages.MainMenuButtons[1], schemes.DEFAULT, callbackMainMenuNeedHelp)
-	}
-	if len(h.messages.MainMenuButtons) >= 3 {
-		keyboard.AddRow().
-			AddCallback(h.messages.MainMenuButtons[2], schemes.DEFAULT, callbackMainMenuProfile)
-	}
-	if len(h.messages.MainMenuButtons) >= 4 {
-		keyboard.AddRow().
-			AddCallback(h.messages.MainMenuButtons[3], schemes.DEFAULT, callbackMainMenuAbout)
-	}
+	keyboard.AddRow().
+		AddCallback(h.messages.MainMenuButtons[0], schemes.POSITIVE, callbackMainMenuHelp).
+		AddCallback(h.messages.MainMenuButtons[1], schemes.DEFAULT, callbackMainMenuNeedHelp)
+
+	keyboard.AddRow().
+		AddCallback(h.messages.MainMenuButtons[3], schemes.DEFAULT, callbackMainMenuAbout)
 
 	h.renderMenu(ctx, chatID, userID, text, keyboard)
 }
@@ -514,12 +506,10 @@ func (h *MessageHandler) showVolunteerMenu(ctx context.Context, chatID, userID i
 
 	keyboard := h.api.Messages.NewKeyboardBuilder()
 	keyboard.AddRow().
-		AddCallback(h.messages.VolunteerMenuOnDemandButton, schemes.DEFAULT, callbackVolunteerOnDemand)
-	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuOnDemandButton, schemes.DEFAULT, callbackVolunteerOnDemand).
 		AddCallback(h.messages.VolunteerMenuTasksButton, schemes.DEFAULT, callbackVolunteerTasks)
 	keyboard.AddRow().
-		AddCallback(h.messages.VolunteerMenuProfileButton, schemes.DEFAULT, callbackMainMenuProfile)
-	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuProfileButton, schemes.DEFAULT, callbackMainMenuProfile).
 		AddCallback(h.messages.VolunteerMenuMainButton, schemes.DEFAULT, callbackProfileBack)
 
 	h.renderMenu(ctx, chatID, userID, text, keyboard)

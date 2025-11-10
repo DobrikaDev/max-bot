@@ -576,12 +576,11 @@ func (h *MessageHandler) showCustomerManageMenu(ctx context.Context, chatID, use
 	}
 
 	keyboard.AddRow().
-		AddCallback(updateLabel, schemes.DEFAULT, callbackCustomerManageUpdate)
+		AddCallback(createTaskLabel, schemes.POSITIVE, callbackCustomerManageCreateTask)
+
 	keyboard.AddRow().
 		AddCallback(tasksLabel, schemes.DEFAULT, callbackCustomerManageTasks).
-		AddCallback(createTaskLabel, schemes.POSITIVE, callbackCustomerManageCreateTask)
-	keyboard.AddRow().
-		AddCallback(deleteLabel, schemes.NEGATIVE, callbackCustomerManageDelete)
+		AddCallback(updateLabel, schemes.DEFAULT, callbackCustomerManageUpdate)
 	keyboard.AddRow().
 		AddCallback(backLabel, schemes.DEFAULT, callbackCustomerManageBack)
 
