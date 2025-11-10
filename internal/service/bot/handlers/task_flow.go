@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	taskpb "DobrikaDev/max-bot/internal/generated/taskpb"
+	userpb "DobrikaDev/max-bot/internal/generated/userpb"
 
 	maxbot "github.com/max-messenger/max-bot-api-client-go"
 	schemes "github.com/max-messenger/max-bot-api-client-go/schemes"
@@ -353,23 +354,18 @@ func (h *MessageHandler) buildCustomerTasksView(ctx context.Context, customerID 
 		builder.WriteString(h.customerTasksEmptyText())
 	} else {
 		title := strings.TrimSpace(h.messages.CustomerTasksListText)
-		if title != "" {
-			builder.WriteString(title)
-			builder.WriteString("\n\n")
+		if title == "" {
+			title = "Select a task using the buttons below."
 		}
-		itemTemplate := h.customerTaskItemTemplate()
+		builder.WriteString(title)
+		builder.WriteString("\n")
+
 		startIndex := int(offset)
 		for idx, task := range tasks {
 			name := strings.TrimSpace(task.GetName())
 			if name == "" {
 				name = "Без названия"
 			}
-			description := strings.TrimSpace(task.GetDescription())
-			if description == "" {
-				description = "Описание отсутствует"
-			}
-			builder.WriteString(fmt.Sprintf(itemTemplate, name, description))
-			builder.WriteString("\n")
 
 			label := truncateLabel(fmt.Sprintf("%d. %s", startIndex+idx+1, name), 40)
 			keyboard.AddRow().
@@ -513,7 +509,6 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 	}
 
 	userIDStr := fmt.Sprintf("%d", userID)
-	itemTemplate := h.volunteerTaskItemTemplate()
 
 	type taskEntry struct {
 		task   *taskpb.Task
@@ -540,18 +535,9 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 	sectionIndex := 1
 
 	if len(joined) > 0 {
-		builder.WriteString("🌟 *Мои отклики:*\n")
+		builder.WriteString(fmt.Sprintf("🌟 *Мои отклики:* %d\n", len(joined)))
 		for _, entry := range joined {
 			name := safeTaskName(entry.task.GetName())
-			description := safeTaskDescription(entry.task.GetDescription())
-			builder.WriteString(fmt.Sprintf(itemTemplate, name, description))
-			if label := volunteerStatusLabel(entry.status); label != "" {
-				builder.WriteString("\nСтатус: ")
-				builder.WriteString(label)
-				builder.WriteString("\n")
-			}
-			builder.WriteString("\n")
-
 			buttonLabel := truncateLabel(fmt.Sprintf("%d. %s %s", sectionIndex, name, volunteerStatusBadge(entry.status)), 45)
 			keyboard.AddRow().
 				AddCallback(buttonLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskView, entry.task.GetId()))
@@ -563,18 +549,9 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 		if sectionIndex > 1 {
 			builder.WriteString("────────────────────\n")
 		}
-		builder.WriteString("📋 *Свободные дела:*\n")
+		builder.WriteString(fmt.Sprintf("📋 *Свободные дела:* %d\n", len(available)))
 		for _, entry := range available {
 			name := safeTaskName(entry.task.GetName())
-			description := safeTaskDescription(entry.task.GetDescription())
-			builder.WriteString(fmt.Sprintf(itemTemplate, name, description))
-			if entry.status != "" {
-				builder.WriteString("\nСтатус: ")
-				builder.WriteString(volunteerStatusLabel(entry.status))
-				builder.WriteString("\n")
-			}
-			builder.WriteString("\n")
-
 			buttonLabel := truncateLabel(fmt.Sprintf("%d. %s %s", sectionIndex, name, volunteerStatusBadge(entry.status)), 45)
 			keyboard.AddRow().
 				AddCallback(buttonLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskView, entry.task.GetId()))
@@ -626,8 +603,6 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 
 	keyboard.AddRow().
 		AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
-	keyboard.AddRow().
-		AddCallback(h.messages.VolunteerMenuMainButton, schemes.DEFAULT, callbackProfileBack)
 
 	return builder.String(), keyboard
 }
@@ -710,6 +685,61 @@ func (h *MessageHandler) customerTaskItemTemplate() string {
 		return text
 	}
 	return "• *%s*\n%s"
+}
+
+func (h *MessageHandler) customerTaskRewardDescription(taskName string) string {
+	name := strings.TrimSpace(taskName)
+	if text := strings.TrimSpace(h.messages.CustomerTaskRewardDescription); text != "" {
+		if strings.Contains(text, "%s") {
+			return fmt.Sprintf(text, name)
+		}
+		return text
+	}
+	if name == "" {
+		return "Награда за выполнение задачи"
+	}
+	return fmt.Sprintf("Награда за выполнение задачи «%s»", name)
+}
+
+func (h *MessageHandler) customerTaskApproveSuccessText(taskName string, amount int32) string {
+	name := strings.TrimSpace(taskName)
+	text := strings.TrimSpace(h.messages.CustomerTaskApproveSuccessText)
+	if text == "" {
+		if amount > 0 {
+			return fmt.Sprintf("Выполнение задачи подтверждено 💚\nНаграда %d добриков отправлена исполнителю.", amount)
+		}
+		return "Выполнение задачи подтверждено 💚"
+	}
+
+	switch {
+	case strings.Contains(text, "%d") && strings.Contains(text, "%s"):
+		return fmt.Sprintf(text, amount, name)
+	case strings.Contains(text, "%d"):
+		return fmt.Sprintf(text, amount)
+	case strings.Contains(text, "%s"):
+		return fmt.Sprintf(text, name)
+	default:
+		return text
+	}
+}
+
+func (h *MessageHandler) volunteerTaskRewardNotification(taskName string, amount int32) string {
+	name := strings.TrimSpace(taskName)
+	text := strings.TrimSpace(h.messages.VolunteerTaskRewardNotification)
+	if text == "" {
+		return fmt.Sprintf("Ты получил(а) %d добриков за доброе дело «%s» 💚", amount, name)
+	}
+
+	switch {
+	case strings.Contains(text, "%d") && strings.Contains(text, "%s"):
+		return fmt.Sprintf(text, amount, name)
+	case strings.Contains(text, "%d"):
+		return fmt.Sprintf(text, amount)
+	case strings.Contains(text, "%s"):
+		return fmt.Sprintf(text, name)
+	default:
+		return text
+	}
 }
 
 func (h *MessageHandler) volunteerTasksUnavailableText() string {
@@ -970,6 +1000,17 @@ func (h *MessageHandler) handleCustomerTaskApprove(ctx context.Context, callback
 		return
 	}
 
+	task, err := h.getTaskByID(ctx, taskID)
+	if err != nil || task == nil {
+		if err != nil {
+			h.logger.Error("failed to fetch task before approval reward", zap.Error(err), zap.String("task_id", taskID))
+		} else {
+			h.logger.Warn("task not found before approval reward", zap.String("task_id", taskID))
+		}
+		h.showCustomerTaskAssignmentDetail(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, taskID, volunteerID, h.messages.CustomerTaskDecisionErrorText)
+		return
+	}
+
 	chatID := callbackQuery.Message.Recipient.ChatId
 
 	resp, err := h.task.ApproveTask(ctx, &taskpb.ApproveTaskRequest{UserId: volunteerID, TaskId: taskID})
@@ -978,7 +1019,49 @@ func (h *MessageHandler) handleCustomerTaskApprove(ctx context.Context, callback
 		return
 	}
 
-	h.showCustomerTaskAssignmentDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, volunteerID, h.messages.CustomerTaskApproveSuccessText)
+	successText := h.customerTaskApproveSuccessText(task.GetName(), task.GetCost())
+
+	if cost := task.GetCost(); cost > 0 {
+		if h.user == nil {
+			h.logger.Error("user service client is not configured for reward credit", zap.String("task_id", taskID), zap.String("volunteer_id", volunteerID))
+			h.showCustomerTaskAssignmentDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, volunteerID, h.messages.CustomerTaskDecisionErrorText)
+			return
+		}
+
+		opReq := &userpb.CreateOperationRequest{
+			MaxId:       volunteerID,
+			Amount:      cost,
+			Type:        userpb.BalanceOperationType_BALANCE_OPERATION_TYPE_DEPOSIT,
+			Description: h.customerTaskRewardDescription(task.GetName()),
+		}
+
+		opResp, err := h.user.CreateOperation(ctx, opReq)
+		if err != nil {
+			h.logger.Error("failed to credit volunteer reward", zap.Error(err), zap.String("task_id", taskID), zap.String("volunteer_id", volunteerID))
+			h.showCustomerTaskAssignmentDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, volunteerID, h.messages.CustomerTaskDecisionErrorText)
+			return
+		}
+
+		if svcErr := opResp.GetError(); svcErr != nil {
+			h.logger.Warn("user service returned error when crediting reward", zap.String("task_id", taskID), zap.String("volunteer_id", volunteerID), zap.String("message", svcErr.GetMessage()))
+			h.showCustomerTaskAssignmentDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, volunteerID, h.messages.CustomerTaskDecisionErrorText)
+			return
+		}
+
+		volunteerNumericID, err := strconv.ParseInt(volunteerID, 10, 64)
+		if err != nil || volunteerNumericID <= 0 {
+			h.logger.Warn("failed to parse volunteer id for reward notification", zap.String("volunteer_id", volunteerID), zap.Error(err))
+		} else {
+			notification := strings.TrimSpace(h.volunteerTaskRewardNotification(task.GetName(), cost))
+			if notification != "" {
+				if _, err := h.sendInteractiveMessage(ctx, volunteerNumericID, volunteerNumericID, notification, nil); err != nil {
+					h.logger.Error("failed to send reward notification", zap.Error(err), zap.Int64("volunteer_id", volunteerNumericID), zap.String("task_id", taskID))
+				}
+			}
+		}
+	}
+
+	h.showCustomerTaskAssignmentDetail(ctx, chatID, callbackQuery.Callback.User.UserId, taskID, volunteerID, successText)
 }
 
 func (h *MessageHandler) handleCustomerTaskReject(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, data string) {

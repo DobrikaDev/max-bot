@@ -51,6 +51,7 @@ type Messages struct {
 	CustomerTasksPrevButton           string   `json:"customer_tasks_prev_button"`
 	CustomerTasksNextButton           string   `json:"customer_tasks_next_button"`
 	CustomerTasksPageFooter           string   `json:"customer_tasks_page_footer"`
+	CustomerTaskRewardDescription     string   `json:"customer_task_reward_description"`
 	VolunteerMenuIntro                string   `json:"volunteer_menu_intro"`
 	VolunteerMenuOnDemandButton       string   `json:"volunteer_menu_on_demand_button"`
 	VolunteerMenuTasksButton          string   `json:"volunteer_menu_tasks_button"`
@@ -66,6 +67,7 @@ type Messages struct {
 	VolunteerTasksPrevButton          string   `json:"volunteer_tasks_prev_button"`
 	VolunteerTasksNextButton          string   `json:"volunteer_tasks_next_button"`
 	VolunteerTasksPageFooter          string   `json:"volunteer_tasks_page_footer"`
+	VolunteerTaskRewardNotification   string   `json:"volunteer_task_reward_notification"`
 	TaskServiceUnavailableText        string   `json:"task_service_unavailable_text"`
 	TaskFetchErrorText                string   `json:"task_fetch_error_text"`
 	TaskCreateNoCustomerText          string   `json:"task_create_no_customer_text"`
@@ -300,6 +302,9 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.CustomerTasksPageFooter != "" {
 		base.CustomerTasksPageFooter = overrides.CustomerTasksPageFooter
 	}
+	if overrides.CustomerTaskRewardDescription != "" {
+		base.CustomerTaskRewardDescription = overrides.CustomerTaskRewardDescription
+	}
 	if overrides.VolunteerMenuIntro != "" {
 		base.VolunteerMenuIntro = overrides.VolunteerMenuIntro
 	}
@@ -344,6 +349,9 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if overrides.VolunteerTasksPageFooter != "" {
 		base.VolunteerTasksPageFooter = overrides.VolunteerTasksPageFooter
+	}
+	if overrides.VolunteerTaskRewardNotification != "" {
+		base.VolunteerTaskRewardNotification = overrides.VolunteerTaskRewardNotification
 	}
 	if overrides.TaskServiceUnavailableText != "" {
 		base.TaskServiceUnavailableText = overrides.TaskServiceUnavailableText
@@ -627,6 +635,7 @@ func defaultMessages() Messages {
 		CustomerTasksPrevButton:           "⬅️ Назад",
 		CustomerTasksNextButton:           "➡️ Далее",
 		CustomerTasksPageFooter:           "Страница %d из %d",
+		CustomerTaskRewardDescription:     "Награда за выполнение задачи «%s»",
 		VolunteerMenuIntro:                "💚 Выберите, как хотите помочь:",
 		VolunteerMenuOnDemandButton:       "По запросу",
 		VolunteerMenuTasksButton:          "Список дел",
@@ -642,6 +651,7 @@ func defaultMessages() Messages {
 		VolunteerTasksPrevButton:          "⬅️ Назад",
 		VolunteerTasksNextButton:          "➡️ Далее",
 		VolunteerTasksPageFooter:          "Страница %d из %d",
+		VolunteerTaskRewardNotification:   "Спасибо за доброе дело «%s»! Тебе начислено %d добриков 💚",
 		TaskServiceUnavailableText:        "Сервис задач недоступен. Попробуйте позже.",
 		TaskFetchErrorText:                "Не удалось получить список задач. Попробуйте позже.",
 		TaskCreateNoCustomerText:          "Сначала заполни профиль заказчика, чтобы создавать добрые дела.",
