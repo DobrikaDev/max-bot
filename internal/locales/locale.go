@@ -46,6 +46,8 @@ type Messages struct {
 	CustomerManageCreateTaskButton    string   `json:"customer_manage_create_task_button"`
 	CustomerTasksListText             string   `json:"customer_tasks_list_text"`
 	CustomerCreateTaskPlaceholderText string   `json:"customer_create_task_placeholder_text"`
+	CustomerTasksEmptyText            string   `json:"customer_tasks_empty_text"`
+	CustomerTaskItemTemplate          string   `json:"customer_task_item_template"`
 	VolunteerMenuIntro                string   `json:"volunteer_menu_intro"`
 	VolunteerMenuOnDemandButton       string   `json:"volunteer_menu_on_demand_button"`
 	VolunteerMenuTasksButton          string   `json:"volunteer_menu_tasks_button"`
@@ -54,6 +56,36 @@ type Messages struct {
 	VolunteerMenuMainButton           string   `json:"volunteer_menu_main_button"`
 	VolunteerOnDemandPlaceholder      string   `json:"volunteer_on_demand_placeholder"`
 	VolunteerTasksPlaceholder         string   `json:"volunteer_tasks_placeholder"`
+	VolunteerTasksUnavailableText     string   `json:"volunteer_tasks_unavailable_text"`
+	VolunteerTasksErrorText           string   `json:"volunteer_tasks_error_text"`
+	VolunteerTasksEmptyText           string   `json:"volunteer_tasks_empty_text"`
+	VolunteerTaskItemTemplate         string   `json:"volunteer_task_item_template"`
+	TaskServiceUnavailableText        string   `json:"task_service_unavailable_text"`
+	TaskFetchErrorText                string   `json:"task_fetch_error_text"`
+	TaskCreateNoCustomerText          string   `json:"task_create_no_customer_text"`
+	TaskCreateNamePrompt              string   `json:"task_create_name_prompt"`
+	TaskCreateNameRetryText           string   `json:"task_create_name_retry_text"`
+	TaskCreateDescriptionPrompt       string   `json:"task_create_description_prompt"`
+	TaskCreateDescriptionRetryText    string   `json:"task_create_description_retry_text"`
+	TaskCreateSuccessText             string   `json:"task_create_success_text"`
+	TaskCreateErrorText               string   `json:"task_create_error_text"`
+	VolunteerTaskDetailTitle          string   `json:"volunteer_task_detail_title"`
+	VolunteerTaskJoinButton           string   `json:"volunteer_task_join_button"`
+	VolunteerTaskLeaveButton          string   `json:"volunteer_task_leave_button"`
+	VolunteerTaskConfirmButton        string   `json:"volunteer_task_confirm_button"`
+	VolunteerTaskJoinSuccessText      string   `json:"volunteer_task_join_success_text"`
+	VolunteerTaskJoinErrorText        string   `json:"volunteer_task_join_error_text"`
+	VolunteerTaskLeaveSuccessText     string   `json:"volunteer_task_leave_success_text"`
+	VolunteerTaskLeaveErrorText       string   `json:"volunteer_task_leave_error_text"`
+	VolunteerTaskConfirmSuccessText   string   `json:"volunteer_task_confirm_success_text"`
+	VolunteerTaskConfirmErrorText     string   `json:"volunteer_task_confirm_error_text"`
+	VolunteerTaskDetailBackButton     string   `json:"volunteer_task_detail_back_button"`
+	CustomerTaskDetailTitle           string   `json:"customer_task_detail_title"`
+	CustomerTaskApproveButton         string   `json:"customer_task_approve_button"`
+	CustomerTaskRejectButton          string   `json:"customer_task_reject_button"`
+	CustomerTaskApproveSuccessText    string   `json:"customer_task_approve_success_text"`
+	CustomerTaskRejectSuccessText     string   `json:"customer_task_reject_success_text"`
+	CustomerTaskDecisionErrorText     string   `json:"customer_task_decision_error_text"`
 	CustomerDeleteConfirmText         string   `json:"customer_delete_confirm_text"`
 	CustomerDeleteConfirmButton       string   `json:"customer_delete_confirm_button"`
 	CustomerDeleteCancelButton        string   `json:"customer_delete_cancel_button"`
@@ -247,6 +279,12 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.CustomerCreateTaskPlaceholderText != "" {
 		base.CustomerCreateTaskPlaceholderText = overrides.CustomerCreateTaskPlaceholderText
 	}
+	if overrides.CustomerTasksEmptyText != "" {
+		base.CustomerTasksEmptyText = overrides.CustomerTasksEmptyText
+	}
+	if overrides.CustomerTaskItemTemplate != "" {
+		base.CustomerTaskItemTemplate = overrides.CustomerTaskItemTemplate
+	}
 	if overrides.VolunteerMenuIntro != "" {
 		base.VolunteerMenuIntro = overrides.VolunteerMenuIntro
 	}
@@ -270,6 +308,96 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if overrides.VolunteerTasksPlaceholder != "" {
 		base.VolunteerTasksPlaceholder = overrides.VolunteerTasksPlaceholder
+	}
+	if overrides.VolunteerTasksUnavailableText != "" {
+		base.VolunteerTasksUnavailableText = overrides.VolunteerTasksUnavailableText
+	}
+	if overrides.VolunteerTasksErrorText != "" {
+		base.VolunteerTasksErrorText = overrides.VolunteerTasksErrorText
+	}
+	if overrides.VolunteerTasksEmptyText != "" {
+		base.VolunteerTasksEmptyText = overrides.VolunteerTasksEmptyText
+	}
+	if overrides.VolunteerTaskItemTemplate != "" {
+		base.VolunteerTaskItemTemplate = overrides.VolunteerTaskItemTemplate
+	}
+	if overrides.TaskServiceUnavailableText != "" {
+		base.TaskServiceUnavailableText = overrides.TaskServiceUnavailableText
+	}
+	if overrides.TaskFetchErrorText != "" {
+		base.TaskFetchErrorText = overrides.TaskFetchErrorText
+	}
+	if overrides.TaskCreateNoCustomerText != "" {
+		base.TaskCreateNoCustomerText = overrides.TaskCreateNoCustomerText
+	}
+	if overrides.TaskCreateNamePrompt != "" {
+		base.TaskCreateNamePrompt = overrides.TaskCreateNamePrompt
+	}
+	if overrides.TaskCreateNameRetryText != "" {
+		base.TaskCreateNameRetryText = overrides.TaskCreateNameRetryText
+	}
+	if overrides.TaskCreateDescriptionPrompt != "" {
+		base.TaskCreateDescriptionPrompt = overrides.TaskCreateDescriptionPrompt
+	}
+	if overrides.TaskCreateDescriptionRetryText != "" {
+		base.TaskCreateDescriptionRetryText = overrides.TaskCreateDescriptionRetryText
+	}
+	if overrides.TaskCreateSuccessText != "" {
+		base.TaskCreateSuccessText = overrides.TaskCreateSuccessText
+	}
+	if overrides.TaskCreateErrorText != "" {
+		base.TaskCreateErrorText = overrides.TaskCreateErrorText
+	}
+	if overrides.VolunteerTaskDetailTitle != "" {
+		base.VolunteerTaskDetailTitle = overrides.VolunteerTaskDetailTitle
+	}
+	if overrides.VolunteerTaskJoinButton != "" {
+		base.VolunteerTaskJoinButton = overrides.VolunteerTaskJoinButton
+	}
+	if overrides.VolunteerTaskLeaveButton != "" {
+		base.VolunteerTaskLeaveButton = overrides.VolunteerTaskLeaveButton
+	}
+	if overrides.VolunteerTaskConfirmButton != "" {
+		base.VolunteerTaskConfirmButton = overrides.VolunteerTaskConfirmButton
+	}
+	if overrides.VolunteerTaskJoinSuccessText != "" {
+		base.VolunteerTaskJoinSuccessText = overrides.VolunteerTaskJoinSuccessText
+	}
+	if overrides.VolunteerTaskJoinErrorText != "" {
+		base.VolunteerTaskJoinErrorText = overrides.VolunteerTaskJoinErrorText
+	}
+	if overrides.VolunteerTaskLeaveSuccessText != "" {
+		base.VolunteerTaskLeaveSuccessText = overrides.VolunteerTaskLeaveSuccessText
+	}
+	if overrides.VolunteerTaskLeaveErrorText != "" {
+		base.VolunteerTaskLeaveErrorText = overrides.VolunteerTaskLeaveErrorText
+	}
+	if overrides.VolunteerTaskConfirmSuccessText != "" {
+		base.VolunteerTaskConfirmSuccessText = overrides.VolunteerTaskConfirmSuccessText
+	}
+	if overrides.VolunteerTaskConfirmErrorText != "" {
+		base.VolunteerTaskConfirmErrorText = overrides.VolunteerTaskConfirmErrorText
+	}
+	if overrides.VolunteerTaskDetailBackButton != "" {
+		base.VolunteerTaskDetailBackButton = overrides.VolunteerTaskDetailBackButton
+	}
+	if overrides.CustomerTaskDetailTitle != "" {
+		base.CustomerTaskDetailTitle = overrides.CustomerTaskDetailTitle
+	}
+	if overrides.CustomerTaskApproveButton != "" {
+		base.CustomerTaskApproveButton = overrides.CustomerTaskApproveButton
+	}
+	if overrides.CustomerTaskRejectButton != "" {
+		base.CustomerTaskRejectButton = overrides.CustomerTaskRejectButton
+	}
+	if overrides.CustomerTaskApproveSuccessText != "" {
+		base.CustomerTaskApproveSuccessText = overrides.CustomerTaskApproveSuccessText
+	}
+	if overrides.CustomerTaskRejectSuccessText != "" {
+		base.CustomerTaskRejectSuccessText = overrides.CustomerTaskRejectSuccessText
+	}
+	if overrides.CustomerTaskDecisionErrorText != "" {
+		base.CustomerTaskDecisionErrorText = overrides.CustomerTaskDecisionErrorText
 	}
 	if overrides.CustomerDeleteSuccessText != "" {
 		base.CustomerDeleteSuccessText = overrides.CustomerDeleteSuccessText
@@ -441,7 +569,7 @@ func defaultMessages() Messages {
 		CustomerLookupErrorText:           "Не удалось получить данные заказчика. Попробуйте позже.",
 		CustomerFormIntroText:             "Расскажите о заказчике. Заполните профиль, чтобы волонтёры быстрее откликнулись.",
 		CustomerSummaryTitle:              "Профиль заказчика:",
-		CustomerSummaryTemplate:           "Кому:* %s\n*История:* %s",
+		CustomerSummaryTemplate:           "*Кому:* %s\n*История:* %s",
 		CustomerTypePrompt:                "Кто обращается за помощью?",
 		CustomerTypeIndividualButton:      "Частное лицо",
 		CustomerTypeBusinessButton:        "Организация",
@@ -468,8 +596,10 @@ func defaultMessages() Messages {
 		CustomerManageBackButton:          "⬅️ Назад в меню",
 		CustomerManageTasksButton:         "Мои задачи",
 		CustomerManageCreateTaskButton:    "Создать задачу",
-		CustomerTasksListText:             "Список задач пока недоступен. Мы скоро добавим управление задачами здесь.",
+		CustomerTasksListText:             "Список добрых дел:",
 		CustomerCreateTaskPlaceholderText: "Создание задач появится позже. Следите за обновлениями!",
+		CustomerTasksEmptyText:            "Пока задач нет. Создайте первое доброе дело!",
+		CustomerTaskItemTemplate:          "• *%s*\n%s",
 		VolunteerMenuIntro:                "💚 Выберите, как хотите помочь:",
 		VolunteerMenuOnDemandButton:       "По запросу",
 		VolunteerMenuTasksButton:          "Список дел",
@@ -478,6 +608,36 @@ func defaultMessages() Messages {
 		VolunteerMenuMainButton:           "Главное меню",
 		VolunteerOnDemandPlaceholder:      "Раздел «По запросу» в разработке. Скоро здесь появятся обращения от людей рядом 💚",
 		VolunteerTasksPlaceholder:         "Список дел появится скоро. Здесь будут доступные добрые дела.",
+		VolunteerTasksUnavailableText:     "Сервис задач недоступен. Попробуйте позже.",
+		VolunteerTasksErrorText:           "Не удалось получить список добрых дел. Попробуйте позже.",
+		VolunteerTasksEmptyText:           "Сейчас нет активных задач. Загляните позже!",
+		VolunteerTaskItemTemplate:         "• *%s*\n%s",
+		TaskServiceUnavailableText:        "Сервис задач недоступен. Попробуйте позже.",
+		TaskFetchErrorText:                "Не удалось получить список задач. Попробуйте позже.",
+		TaskCreateNoCustomerText:          "Сначала заполни профиль заказчика, чтобы создавать добрые дела.",
+		TaskCreateNamePrompt:              "Как назовём доброе дело?",
+		TaskCreateNameRetryText:           "Введите название доброго дела, пожалуйста.",
+		TaskCreateDescriptionPrompt:       "Расскажите, что нужно сделать. Это поможет волонтёрам понять задачу.",
+		TaskCreateDescriptionRetryText:    "Добавьте описание, чтобы волонтёры понимали, чем помочь.",
+		TaskCreateSuccessText:             "Доброе дело «%s» создано 💚",
+		TaskCreateErrorText:               "Не удалось создать задачу. Попробуйте позже.",
+		VolunteerTaskDetailTitle:          "*%s*",
+		VolunteerTaskJoinButton:           "Откликнуться",
+		VolunteerTaskLeaveButton:          "Отказаться",
+		VolunteerTaskConfirmButton:        "Я помог(ла)",
+		VolunteerTaskJoinSuccessText:      "Отлично! Ты откликнулся(ась) на доброе дело 💚",
+		VolunteerTaskJoinErrorText:        "Не получилось откликнуться. Попробуй позже.",
+		VolunteerTaskLeaveSuccessText:     "Ты отказался(ась) от участия. Ничего страшного!",
+		VolunteerTaskLeaveErrorText:       "Не удалось отказаться от участия. Попробуй позже.",
+		VolunteerTaskConfirmSuccessText:   "Спасибо! Мы передали, что ты завершил(а) доброе дело.",
+		VolunteerTaskConfirmErrorText:     "Не удалось подтвердить выполнение. Попробуй позже.",
+		VolunteerTaskDetailBackButton:     "⬅️ К списку дел",
+		CustomerTaskDetailTitle:           "*%s*",
+		CustomerTaskApproveButton:         "Подтвердить выполнение",
+		CustomerTaskRejectButton:          "Отклонить",
+		CustomerTaskApproveSuccessText:    "Выполнение задачи подтверждено 💚",
+		CustomerTaskRejectSuccessText:     "Задача помечена как невыполненная.",
+		CustomerTaskDecisionErrorText:     "Не удалось обновить статус задачи. Попробуйте позже.",
 		CustomerDeleteConfirmText:         "Удалить профиль заказчика?",
 		CustomerDeleteConfirmButton:       "Удалить профиль",
 		CustomerDeleteCancelButton:        "Отмена",

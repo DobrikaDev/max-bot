@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package task;
+
+option go_package = "DobrikaDev/max-bot/internal/generated/taskpb";
+
+service TaskService {
+    rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+    rpc GetTasks(GetTasksRequest) returns (GetTasksResponse);
+    rpc GetTaskByID(GetTaskByIDRequest) returns (GetTaskByIDResponse);
+    rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse);
+    rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
+
+    rpc UserJoinTask(UserJoinTaskRequest) returns (UserJoinTaskResponse);
+    rpc UserLeaveTask(UserLeaveTaskRequest) returns (UserLeaveTaskResponse);
+    rpc UserConfirmTask(UserConfirmTaskRequest) returns (UserConfirmTaskResponse);
+    rpc ApproveTask(ApproveTaskRequest) returns (ApproveTaskResponse);
+    rpc RejectTask(RejectTaskRequest) returns (RejectTaskResponse);
+}
+
+message UserJoinTaskRequest {
+    string user_id = 1;
+    string task_id = 2;
+}
+
+message UserJoinTaskResponse {
+    Error error = 1;
+}
+
+message UserLeaveTaskRequest {
+    string user_id = 1;
+    string task_id = 2;
+}
+
+message UserLeaveTaskResponse {
+    Error error = 1;
+}
+
+message UserConfirmTaskRequest {
+    string user_id = 1;
+    string task_id = 2;
+}
+
+message UserConfirmTaskResponse {
+    Error error = 1;
+}
+
+message ApproveTaskRequest {
+    string user_id = 1;
+    string task_id = 2;
+}
+
+message ApproveTaskResponse {
+    Error error = 1;
+}
+
+message RejectTaskRequest {
+    string user_id = 1;
+    string task_id = 2;
+}
+
+message RejectTaskResponse {
+    Error error = 1;
+}
+message Task {
+    string id = 1;
+    string customer_id = 2;
+    string name = 3;
+    string description = 4;
+    VerificationType verification_type = 5;
+    int32 cost = 6;
+    int32 members_count = 7;
+    repeated Meta meta = 8;
+    int32 created_at = 9;
+    int32 updated_at = 10;
+}
+
+enum VerificationType {
+    VERIFICATION_TYPE_UNSPECIFIED = 0;
+    VERIFICATION_TYPE_KYC = 1;
+    VERIFICATION_TYPE_NONE = 2;
+    VERIFICATION_TYPE_OTHER = 3;
+}
+
+message Meta {
+    string key = 1;
+    string value = 2;
+}
+
+message CreateTaskRequest {
+    Task Task = 1;
+}
+message GetTasksRequest {
+    string customer_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+}
+
+message GetTasksResponse {
+    repeated Task Tasks = 1;
+    int32 total = 2;
+    Error error = 3;
+}
+
+message GetTaskByIDRequest {
+    string id = 1;
+}
+
+message GetTaskByIDResponse {
+    Task Task = 1;
+    Error error = 2;
+}
+message UpdateTaskRequest {
+    Task Task = 1;
+}
+
+message UpdateTaskResponse {
+    Task Task = 1;
+    Error error = 2;
+}
+
+message DeleteTaskRequest {
+    string id = 1;
+}
+
+message DeleteTaskResponse {
+    string id = 1;
+    Error error = 2;
+}
+
+message CreateTaskResponse {
+    Task Task = 1;
+    Error error = 2;
+}
+
+message Error {
+    ErrorCode code = 1;
+    string message = 2;
+}
+enum ErrorCode {
+    ERROR_CODE_UNSPECIFIED = 0;
+    ERROR_CODE_VALIDATION = 1;
+    ERROR_CODE_NOT_FOUND = 2;
+    ERROR_CODE_INTERNAL = 3;
+    ERROR_CODE_ALREADY_EXISTS = 4;
+}

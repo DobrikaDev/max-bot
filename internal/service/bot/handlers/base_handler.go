@@ -13,6 +13,7 @@ import (
 	"time"
 
 	customerpb "DobrikaDev/max-bot/internal/generated/customerpb"
+	taskpb "DobrikaDev/max-bot/internal/generated/taskpb"
 	userpb "DobrikaDev/max-bot/internal/generated/userpb"
 	"DobrikaDev/max-bot/internal/locales"
 	"DobrikaDev/max-bot/utils/config"
@@ -30,10 +31,12 @@ type MessageHandler struct {
 	logger   *zap.Logger
 	user     userpb.UserServiceClient
 	customer customerpb.CustomerServiceClient
+	task     taskpb.TaskServiceClient
 	messages locales.Messages
 
 	sessions         *sessionStore
 	customerSessions *customerSessionStore
+	taskSessions     *taskSessionStore
 	menus            *menuStore
 
 	httpClient *http.Client
@@ -56,6 +59,7 @@ func NewMessageHandler(api *maxbot.Api, cfg *config.Config, logger *zap.Logger) 
 		logger:           logger,
 		sessions:         newSessionStore(),
 		customerSessions: newCustomerSessionStore(),
+		taskSessions:     newTaskSessionStore(),
 		menus:            newMenuStore(),
 		httpClient:       &http.Client{Timeout: 10 * time.Second},
 		apiBaseURL:       "https://botapi.max.ru",
@@ -88,6 +92,14 @@ func NewMessageHandler(api *maxbot.Api, cfg *config.Config, logger *zap.Logger) 
 		handler.customer = customerpb.NewCustomerServiceClient(conn)
 	}
 
+	if cfg.TaskServiceURL == "" {
+		logger.Warn("task service URL is not configured; task features will be disabled")
+	} else if conn, err := grpc.Dial(cfg.TaskServiceURL, grpc.WithTransportCredentials(insecure.NewCredentials())); err != nil {
+		logger.Error("failed to connect to task service", zap.Error(err))
+	} else {
+		handler.task = taskpb.NewTaskServiceClient(conn)
+	}
+
 	return handler
 }
 
@@ -95,6 +107,10 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message *schemes.Mes
 	h.logger.Info("Received message", zap.Any("message", message))
 
 	if !h.ensureUserContext(ctx, message) {
+		return
+	}
+
+	if h.tryHandleTaskCreationMessage(ctx, message) {
 		return
 	}
 
@@ -399,6 +415,30 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 	chatID := callbackQuery.Message.Recipient.ChatId
 	userID := callbackQuery.Callback.User.UserId
 
+	switch {
+	case strings.HasPrefix(payload, callbackVolunteerTaskView+":"):
+		h.handleVolunteerTaskView(ctx, callbackQuery, strings.TrimPrefix(payload, callbackVolunteerTaskView+":"))
+		return true
+	case strings.HasPrefix(payload, callbackVolunteerTaskJoin+":"):
+		h.handleVolunteerTaskJoin(ctx, callbackQuery, strings.TrimPrefix(payload, callbackVolunteerTaskJoin+":"))
+		return true
+	case strings.HasPrefix(payload, callbackVolunteerTaskLeave+":"):
+		h.handleVolunteerTaskLeave(ctx, callbackQuery, strings.TrimPrefix(payload, callbackVolunteerTaskLeave+":"))
+		return true
+	case strings.HasPrefix(payload, callbackVolunteerTaskConfirm+":"):
+		h.handleVolunteerTaskConfirm(ctx, callbackQuery, strings.TrimPrefix(payload, callbackVolunteerTaskConfirm+":"))
+		return true
+	case strings.HasPrefix(payload, callbackCustomerTaskView+":"):
+		h.handleCustomerTaskView(ctx, callbackQuery, strings.TrimPrefix(payload, callbackCustomerTaskView+":"))
+		return true
+	case strings.HasPrefix(payload, callbackCustomerTaskApprove+":"):
+		h.handleCustomerTaskApprove(ctx, callbackQuery, strings.TrimPrefix(payload, callbackCustomerTaskApprove+":"))
+		return true
+	case strings.HasPrefix(payload, callbackCustomerTaskReject+":"):
+		h.handleCustomerTaskReject(ctx, callbackQuery, strings.TrimPrefix(payload, callbackCustomerTaskReject+":"))
+		return true
+	}
+
 	switch payload {
 	case callbackMainMenuProfile:
 		h.showProfile(ctx, chatID, userID)
@@ -407,9 +447,9 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 	case callbackMainMenuAbout:
 		h.showAboutDobrikaMenu(ctx, chatID, userID)
 	case callbackVolunteerOnDemand:
-		h.showVolunteerPlaceholder(ctx, chatID, userID, h.messages.VolunteerOnDemandPlaceholder)
+		h.showVolunteerTasksList(ctx, chatID, userID, h.messages.VolunteerOnDemandPlaceholder)
 	case callbackVolunteerTasks:
-		h.showVolunteerPlaceholder(ctx, chatID, userID, h.messages.VolunteerTasksPlaceholder)
+		h.showVolunteerTasksList(ctx, chatID, userID, h.messages.VolunteerTasksPlaceholder)
 	case callbackVolunteerBack:
 		h.showVolunteerMenu(ctx, chatID, userID)
 	case callbackProfileCoins:
@@ -483,14 +523,6 @@ func (h *MessageHandler) showVolunteerMenu(ctx context.Context, chatID, userID i
 		AddCallback(h.messages.VolunteerMenuMainButton, schemes.DEFAULT, callbackProfileBack)
 
 	h.renderMenu(ctx, chatID, userID, text, keyboard)
-}
-
-func (h *MessageHandler) showVolunteerPlaceholder(ctx context.Context, chatID, userID int64, text string) {
-	if strings.TrimSpace(text) == "" {
-		text = "Раздел скоро появится 💚"
-	}
-
-	h.renderMenu(ctx, chatID, userID, text, h.volunteerBackKeyboard())
 }
 
 func (h *MessageHandler) volunteerBackKeyboard() *maxbot.Keyboard {

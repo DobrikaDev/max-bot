@@ -59,6 +59,7 @@ jobs:
           MAX_TOKEN: ${{ secrets.MAX_TOKEN }}
           USER_SERVICE_URL: user-service.default.svc.cluster.local:8081
           CUSTOMER_SERVICE_URL: customer-service.default.svc.cluster.local:8082
+          TASK_SERVICE_URL: task-service.default.svc.cluster.local:8083
         run: |
           envsubst < deployments/k8s/configmap.yaml | kubectl apply -f -
           kubectl apply -f deployments/k8s/service.yaml
