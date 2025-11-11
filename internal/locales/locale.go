@@ -52,6 +52,14 @@ type Messages struct {
 	CustomerTasksNextButton              string   `json:"customer_tasks_next_button"`
 	CustomerTasksPageFooter              string   `json:"customer_tasks_page_footer"`
 	CustomerTaskRewardDescription        string   `json:"customer_task_reward_description"`
+	CustomerTaskDetailFormat             string   `json:"customer_task_detail_format"`
+	CustomerTaskDetailLocation           string   `json:"customer_task_detail_location"`
+	CustomerTaskDetailReward             string   `json:"customer_task_detail_reward"`
+	CustomerTaskDetailNoReward           string   `json:"customer_task_detail_no_reward"`
+	CustomerTaskDetailVolunteersOne      string   `json:"customer_task_detail_volunteers_one"`
+	CustomerTaskDetailVolunteersMany     string   `json:"customer_task_detail_volunteers_many"`
+	CustomerTaskDetailCreatedAt          string   `json:"customer_task_detail_created_at"`
+	CustomerTaskAssignmentsEmptyText     string   `json:"customer_task_assignments_empty_text"`
 	VolunteerMenuIntro                   string   `json:"volunteer_menu_intro"`
 	VolunteerMenuOnDemandButton          string   `json:"volunteer_menu_on_demand_button"`
 	VolunteerMenuTasksButton             string   `json:"volunteer_menu_tasks_button"`
@@ -76,6 +84,7 @@ type Messages struct {
 	VolunteerTasksLocationUpdateButton   string   `json:"volunteer_tasks_location_update_button"`
 	VolunteerTasksLocationSkipButton     string   `json:"volunteer_tasks_location_skip_button"`
 	VolunteerTasksLocationSkipText       string   `json:"volunteer_tasks_location_skip_text"`
+	VolunteerTasksLocationUpdatedText    string   `json:"volunteer_tasks_location_updated_text"`
 	VolunteerTasksListItemFormat         string   `json:"volunteer_tasks_list_item_format"`
 	VolunteerTasksListItemLocation       string   `json:"volunteer_tasks_list_item_location"`
 	VolunteerTasksListItemReward         string   `json:"volunteer_tasks_list_item_reward"`
@@ -345,6 +354,30 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.CustomerTaskRewardDescription != "" {
 		base.CustomerTaskRewardDescription = overrides.CustomerTaskRewardDescription
 	}
+	if overrides.CustomerTaskDetailFormat != "" {
+		base.CustomerTaskDetailFormat = overrides.CustomerTaskDetailFormat
+	}
+	if overrides.CustomerTaskDetailLocation != "" {
+		base.CustomerTaskDetailLocation = overrides.CustomerTaskDetailLocation
+	}
+	if overrides.CustomerTaskDetailReward != "" {
+		base.CustomerTaskDetailReward = overrides.CustomerTaskDetailReward
+	}
+	if overrides.CustomerTaskDetailNoReward != "" {
+		base.CustomerTaskDetailNoReward = overrides.CustomerTaskDetailNoReward
+	}
+	if overrides.CustomerTaskDetailVolunteersOne != "" {
+		base.CustomerTaskDetailVolunteersOne = overrides.CustomerTaskDetailVolunteersOne
+	}
+	if overrides.CustomerTaskDetailVolunteersMany != "" {
+		base.CustomerTaskDetailVolunteersMany = overrides.CustomerTaskDetailVolunteersMany
+	}
+	if overrides.CustomerTaskDetailCreatedAt != "" {
+		base.CustomerTaskDetailCreatedAt = overrides.CustomerTaskDetailCreatedAt
+	}
+	if overrides.CustomerTaskAssignmentsEmptyText != "" {
+		base.CustomerTaskAssignmentsEmptyText = overrides.CustomerTaskAssignmentsEmptyText
+	}
 	if overrides.VolunteerMenuIntro != "" {
 		base.VolunteerMenuIntro = overrides.VolunteerMenuIntro
 	}
@@ -416,6 +449,9 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if overrides.VolunteerTasksLocationSkipText != "" {
 		base.VolunteerTasksLocationSkipText = overrides.VolunteerTasksLocationSkipText
+	}
+	if overrides.VolunteerTasksLocationUpdatedText != "" {
+		base.VolunteerTasksLocationUpdatedText = overrides.VolunteerTasksLocationUpdatedText
 	}
 	if overrides.VolunteerTasksListItemFormat != "" {
 		base.VolunteerTasksListItemFormat = overrides.VolunteerTasksListItemFormat
@@ -796,6 +832,14 @@ func defaultMessages() Messages {
 		CustomerTasksNextButton:            "➡️ Далее",
 		CustomerTasksPageFooter:            "Страница %d из %d",
 		CustomerTaskRewardDescription:      "Награда за выполнение задачи «%s»",
+		CustomerTaskDetailFormat:           "Формат: %s",
+		CustomerTaskDetailLocation:         "Локация: %s",
+		CustomerTaskDetailReward:           "Награда: %d добриков",
+		CustomerTaskDetailNoReward:         "Награда: не предусмотрена",
+		CustomerTaskDetailVolunteersOne:    "Нужен 1 волонтёр",
+		CustomerTaskDetailVolunteersMany:   "Нужно волонтёров: %d",
+		CustomerTaskDetailCreatedAt:        "Создано: %s",
+		CustomerTaskAssignmentsEmptyText:   "Пока нет откликов на это доброе дело.",
 		VolunteerMenuIntro:                 "💚 Выберите, как хотите помочь:",
 		VolunteerMenuOnDemandButton:        "По запросу",
 		VolunteerMenuTasksButton:           "Список дел",
@@ -820,6 +864,7 @@ func defaultMessages() Messages {
 		VolunteerTasksLocationUpdateButton: "📍 Отправить локацию",
 		VolunteerTasksLocationSkipButton:   "Пропустить",
 		VolunteerTasksLocationSkipText:     "Показываю доступные дела без учёта геолокации. Если решишь поделиться точкой — просто отправь её кнопкой 💚",
+		VolunteerTasksLocationUpdatedText:  "Локация обновлена 💚",
 		VolunteerTaskItemTemplate:          "• *%s*\n%s",
 		VolunteerOnDemandEmptyText:         "У тебя пока нет активных откликов.",
 		VolunteerTasksPrevButton:           "⬅️ Назад",

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	taskpb "DobrikaDev/max-bot/internal/generated/taskpb"
 	userpb "DobrikaDev/max-bot/internal/generated/userpb"
@@ -1242,7 +1243,14 @@ func (h *MessageHandler) volunteerLocationSkipText() string {
 	if text := strings.TrimSpace(h.messages.VolunteerTasksLocationSkipText); text != "" {
 		return text
 	}
-	return "Хорошо, покажу список без локации. Можно в любой момент отправить геопозицию кнопкой 👇"
+	return "Хорошо, показываю без геолокации. Если передумаешь — просто пришли точку на карте 🌍"
+}
+
+func (h *MessageHandler) volunteerLocationUpdatedText() string {
+	if text := strings.TrimSpace(h.messages.VolunteerTasksLocationUpdatedText); text != "" {
+		return text
+	}
+	return "Локация обновлена! Вот, что есть поблизости 💚"
 }
 
 func (h *MessageHandler) volunteerLocationRequestKeyboard() *maxbot.Keyboard {
@@ -2031,53 +2039,50 @@ func (h *MessageHandler) showVolunteerTaskDetail(ctx context.Context, chatID, us
 	builder.WriteString("\n\n")
 
 	builder.WriteString(safeTaskDescription(task.GetDescription()))
+	builder.WriteString("\n\n")
+	builder.WriteString(h.customerTaskDetailAttributes(task))
+	builder.WriteString("\n\n")
 
 	assignments := parseTaskAssignments(task)
-	userIDStr := fmt.Sprintf("%d", userID)
-	status := assignmentStatusForUser(assignments, userIDStr)
-	if statusLabel := volunteerStatusLabel(status); statusLabel != "" {
-		builder.WriteString("\n\n*Статус:* ")
-		builder.WriteString(statusLabel)
-	}
-
 	keyboard := h.api.Messages.NewKeyboardBuilder()
 
-	joinLabel := h.messages.VolunteerTaskJoinButton
-	if strings.TrimSpace(joinLabel) == "" {
-		joinLabel = "Откликнуться"
+	if len(assignments) == 0 {
+		builder.WriteString(h.customerTaskAssignmentsEmptyText())
+		builder.WriteString("\n")
+	} else {
+		builder.WriteString("🧑‍🤝‍🧑 *Откликнувшиеся:*\n")
+		namesCache := make(map[string]string, len(assignments))
+		for idx, assignment := range assignments {
+			if strings.TrimSpace(assignment.UserID) == "" {
+				continue
+			}
+			displayName := namesCache[assignment.UserID]
+			if displayName == "" {
+				displayName = h.lookupUserName(ctx, assignment.UserID)
+				namesCache[assignment.UserID] = displayName
+			}
+			builder.WriteString(fmt.Sprintf("%d. %s — %s\n", idx+1, displayName, customerStatusLabel(assignment.Status)))
+
+			buttonLabel := truncateLabel(fmt.Sprintf("%d. %s %s", idx+1, displayName, volunteerStatusBadge(assignment.Status)), 45)
+			keyboard.AddRow().
+				AddCallback(buttonLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%s", callbackCustomerTaskAssignment, taskID, assignment.UserID))
+		}
+		builder.WriteString("\n")
 	}
-	leaveLabel := h.messages.VolunteerTaskLeaveButton
-	if strings.TrimSpace(leaveLabel) == "" {
-		leaveLabel = "Отказаться"
+
+	createLabel := h.messages.CustomerManageCreateTaskButton
+	if strings.TrimSpace(createLabel) == "" {
+		createLabel = "Создать задачу"
 	}
-	confirmLabel := h.messages.VolunteerTaskConfirmButton
-	if strings.TrimSpace(confirmLabel) == "" {
-		confirmLabel = "Я помог(ла)"
-	}
-	backLabel := h.messages.VolunteerTaskDetailBackButton
+	backLabel := h.messages.CustomerManageBackButton
 	if strings.TrimSpace(backLabel) == "" {
-		backLabel = "⬅️ К списку"
-	}
-
-	if allowVolunteerJoin(status) {
-		keyboard.AddRow().
-			AddCallback(joinLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s", callbackVolunteerTaskJoin, taskID))
-	}
-
-	if allowVolunteerLeave(status) {
-		keyboard.AddRow().
-			AddCallback(leaveLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskLeave, taskID))
-	}
-
-	if allowVolunteerConfirm(status) {
-		keyboard.AddRow().
-			AddCallback(confirmLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s", callbackVolunteerTaskConfirm, taskID))
+		backLabel = "⬅️ Назад"
 	}
 
 	keyboard.AddRow().
-		AddCallback(backLabel, schemes.DEFAULT, callbackVolunteerTasks)
+		AddCallback(createLabel, schemes.POSITIVE, callbackCustomerManageCreateTask)
 	keyboard.AddRow().
-		AddCallback(h.messages.VolunteerMenuMainButton, schemes.DEFAULT, callbackVolunteerBack)
+		AddCallback(backLabel, schemes.DEFAULT, callbackCustomerManageBack)
 
 	h.renderMenu(ctx, chatID, userID, builder.String(), keyboard)
 }
@@ -2228,18 +2233,20 @@ func (h *MessageHandler) showCustomerTaskDetail(ctx context.Context, chatID, use
 	builder.WriteString("\n\n")
 	builder.WriteString(safeTaskDescription(task.GetDescription()))
 	builder.WriteString("\n\n")
+	builder.WriteString(h.customerTaskDetailAttributes(task))
+	builder.WriteString("\n\n")
 
 	assignments := parseTaskAssignments(task)
 	keyboard := h.api.Messages.NewKeyboardBuilder()
 
 	if len(assignments) == 0 {
-		builder.WriteString(h.customerTasksEmptyText())
+		builder.WriteString(h.customerTaskAssignmentsEmptyText())
 		builder.WriteString("\n")
 	} else {
 		builder.WriteString("🧑‍🤝‍🧑 *Откликнувшиеся:*\n")
 		namesCache := make(map[string]string, len(assignments))
 		for idx, assignment := range assignments {
-			if assignment.UserID == "" {
+			if strings.TrimSpace(assignment.UserID) == "" {
 				continue
 			}
 			displayName := namesCache[assignment.UserID]
@@ -2247,7 +2254,7 @@ func (h *MessageHandler) showCustomerTaskDetail(ctx context.Context, chatID, use
 				displayName = h.lookupUserName(ctx, assignment.UserID)
 				namesCache[assignment.UserID] = displayName
 			}
-			builder.WriteString(fmt.Sprintf("%s — %s\n", displayName, customerStatusLabel(assignment.Status)))
+			builder.WriteString(fmt.Sprintf("%d. %s — %s\n", idx+1, displayName, customerStatusLabel(assignment.Status)))
 
 			buttonLabel := truncateLabel(fmt.Sprintf("%d. %s %s", idx+1, displayName, volunteerStatusBadge(assignment.Status)), 45)
 			keyboard.AddRow().
@@ -2330,6 +2337,8 @@ func (h *MessageHandler) showCustomerTaskAssignmentDetail(ctx context.Context, c
 	builder.WriteString(fmt.Sprintf("*Волонтёр:* %s\n", displayName))
 	builder.WriteString(fmt.Sprintf("*Статус:* %s\n\n", customerStatusLabel(status)))
 	builder.WriteString(safeTaskDescription(task.GetDescription()))
+	builder.WriteString("\n\n")
+	builder.WriteString(h.customerTaskDetailAttributes(task))
 
 	approveLabel := h.messages.CustomerTaskApproveButton
 	if strings.TrimSpace(approveLabel) == "" {
@@ -2645,4 +2654,153 @@ func (h *MessageHandler) getTaskByID(ctx context.Context, id string) (*taskpb.Ta
 	}
 
 	return resp.GetTask(), nil
+}
+
+func (h *MessageHandler) tryHandleVolunteerLocationMessage(ctx context.Context, update *schemes.MessageCreatedUpdate) bool {
+	if update == nil {
+		return false
+	}
+
+	lat, lon, _, ok := extractLocation(update)
+	if !ok {
+		return false
+	}
+
+	if lat == 0 && lon == 0 {
+		return false
+	}
+
+	if h.user == nil {
+		h.logger.Warn("user service client is not configured for volunteer location update", zap.Int64("user_id", update.Message.Sender.UserId))
+		return false
+	}
+
+	geo := fmt.Sprintf("%.6f,%.6f", lat, lon)
+	userID := fmt.Sprintf("%d", update.Message.Sender.UserId)
+
+	req := &userpb.UpdateUserRequest{
+		User: &userpb.User{
+			MaxId:       userID,
+			Geolocation: geo,
+		},
+	}
+
+	resp, err := h.user.UpdateUser(ctx, req)
+	if err != nil {
+		h.logger.Error("failed to update volunteer location", zap.Error(err), zap.Int64("user_id", update.Message.Sender.UserId))
+		h.renderMenu(ctx, update.Message.Recipient.ChatId, update.Message.Sender.UserId, h.volunteerTasksErrorText(), h.volunteerBackKeyboard())
+		return true
+	}
+
+	if resp.GetError() != nil {
+		h.logger.Warn("user service returned error on location update", zap.String("message", resp.GetError().GetMessage()), zap.Int64("user_id", update.Message.Sender.UserId))
+		h.renderMenu(ctx, update.Message.Recipient.ChatId, update.Message.Sender.UserId, h.volunteerTasksErrorText(), h.volunteerBackKeyboard())
+		return true
+	}
+
+	h.showVolunteerTasksList(ctx, update.Message.Recipient.ChatId, update.Message.Sender.UserId, volunteerTasksViewModeAll, volunteerTasksFilterAll, h.volunteerLocationUpdatedText(), 0)
+	return true
+}
+
+func (h *MessageHandler) customerTaskDetailAttributes(task *taskpb.Task) string {
+	meta := taskMetaMap(task)
+	lines := []string{
+		h.customerTaskFormatText(task),
+		h.customerTaskLocationText(task, meta),
+		h.customerTaskRewardText(task),
+		h.customerTaskVolunteersText(task),
+	}
+
+	if created := task.GetCreatedAt(); created > 0 {
+		lines = append(lines, h.customerTaskCreatedAtText(created))
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func (h *MessageHandler) customerTaskFormatText(task *taskpb.Task) string {
+	format := h.taskCreateFormatOfflineLabel()
+	if isOnlineTask(task) {
+		format = h.taskCreateFormatOnlineLabel()
+	}
+
+	template := strings.TrimSpace(h.messages.CustomerTaskDetailFormat)
+	if template == "" {
+		template = "Формат: %s"
+	}
+
+	return fmt.Sprintf(template, format)
+}
+
+func (h *MessageHandler) customerTaskLocationText(task *taskpb.Task, meta map[string]string) string {
+	location := ""
+	if isOnlineTask(task) {
+		location = h.taskCreateFormatOnlineLabel()
+	} else if label := strings.TrimSpace(meta["location_label"]); label != "" {
+		location = label
+	} else if geo := strings.TrimSpace(meta["geo_data"]); geo != "" {
+		location = fmt.Sprintf("%s (%s)", h.taskCreateLocationFallbackLabel(), geo)
+	}
+
+	template := strings.TrimSpace(h.messages.CustomerTaskDetailLocation)
+	if template == "" {
+		template = "Локация: %s"
+	}
+
+	if location == "" {
+		location = "—"
+	}
+
+	return fmt.Sprintf(template, location)
+}
+
+func (h *MessageHandler) customerTaskRewardText(task *taskpb.Task) string {
+	reward := task.GetCost()
+	if reward > 0 {
+		template := strings.TrimSpace(h.messages.CustomerTaskDetailReward)
+		if template == "" {
+			template = "Награда: %d добриков"
+		}
+		return fmt.Sprintf(template, reward)
+	}
+
+	if text := strings.TrimSpace(h.messages.CustomerTaskDetailNoReward); text != "" {
+		return text
+	}
+
+	return "Награда: не предусмотрена"
+}
+
+func (h *MessageHandler) customerTaskVolunteersText(task *taskpb.Task) string {
+	members := task.GetMembersCount()
+	if members <= 1 {
+		if text := strings.TrimSpace(h.messages.CustomerTaskDetailVolunteersOne); text != "" {
+			return text
+		}
+		return "Нужен 1 волонтёр"
+	}
+
+	template := strings.TrimSpace(h.messages.CustomerTaskDetailVolunteersMany)
+	if template == "" {
+		template = "Нужно волонтёров: %d"
+	}
+
+	return fmt.Sprintf(template, members)
+}
+
+func (h *MessageHandler) customerTaskCreatedAtText(created int32) string {
+	layout := "02.01.2006 15:04"
+	timestamp := time.Unix(int64(created), 0).In(time.Local)
+	template := strings.TrimSpace(h.messages.CustomerTaskDetailCreatedAt)
+	if template == "" {
+		template = "Создано: %s"
+	}
+	return fmt.Sprintf(template, timestamp.Format(layout))
+}
+
+func (h *MessageHandler) customerTaskAssignmentsEmptyText() string {
+	if text := strings.TrimSpace(h.messages.CustomerTaskAssignmentsEmptyText); text != "" {
+		return text
+	}
+	return "Пока никто не откликнулся. Поделитесь задачей, чтобы найти волонтёров 💚"
 }

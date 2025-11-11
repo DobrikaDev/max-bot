@@ -139,6 +139,10 @@ func (h *MessageHandler) HandleMessage(ctx context.Context, message *schemes.Mes
 		return
 	}
 
+	if h.tryHandleVolunteerLocationMessage(ctx, message) {
+		return
+	}
+
 	if h.tryHandleCustomerMessage(ctx, message) {
 		return
 	}
