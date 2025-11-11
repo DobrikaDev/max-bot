@@ -24,6 +24,11 @@ const (
 	taskStepNone taskCreationStep = iota
 	taskStepName
 	taskStepDescription
+	taskStepFormat
+	taskStepLocation
+	taskStepReward
+	taskStepMembers
+	taskStepReview
 	taskStepComplete
 )
 
@@ -63,13 +68,19 @@ type volunteerTaskDisplayEntry struct {
 }
 
 type taskCreationSession struct {
-	UserID      int64
-	ChatID      int64
-	MessageID   string
-	CustomerID  string
-	Name        string
-	Description string
-	Current     taskCreationStep
+	UserID        int64
+	ChatID        int64
+	MessageID     string
+	CustomerID    string
+	Name          string
+	Description   string
+	IsOnline      bool
+	Latitude      float64
+	Longitude     float64
+	LocationLabel string
+	Reward        int
+	Members       int
+	Current       taskCreationStep
 }
 
 func (s *taskCreationSession) isInProgress() bool {
@@ -141,9 +152,38 @@ func (h *MessageHandler) tryHandleTaskCreationMessage(ctx context.Context, updat
 			return true
 		}
 		session.Description = text
-		session.Current = taskStepComplete
+		session.Current = taskStepFormat
 		h.taskSessions.upsert(session)
-		h.finalizeTaskCreation(ctx, session)
+		h.promptTaskFormat(ctx, session)
+	case taskStepLocation:
+		if lat, lon, label, ok := extractLocation(update); ok {
+			session.Latitude = lat
+			session.Longitude = lon
+			session.LocationLabel = label
+			session.Current = taskStepReward
+			h.taskSessions.upsert(session)
+			h.promptTaskReward(ctx, session)
+		} else {
+			h.sendTaskSessionMessage(ctx, session, h.taskCreateLocationRetryText(), h.taskCreateLocationKeyboard())
+		}
+	case taskStepReward:
+		if amount, err := parsePositiveInt(text); err == nil {
+			session.Reward = amount
+			session.Current = taskStepMembers
+			h.taskSessions.upsert(session)
+			h.promptTaskMembers(ctx, session)
+		} else {
+			h.sendTaskSessionMessage(ctx, session, h.taskCreateRewardRetryText(), h.taskCreateRewardKeyboard())
+		}
+	case taskStepMembers:
+		if count, err := parsePositiveInt(text); err == nil && count > 0 {
+			session.Members = count
+			session.Current = taskStepReview
+			h.taskSessions.upsert(session)
+			h.showTaskReview(ctx, session)
+		} else {
+			h.sendTaskSessionMessage(ctx, session, h.taskCreateMembersRetryText(), h.taskCreateMembersKeyboard())
+		}
 	default:
 		h.logger.Debug("task creation message in unexpected step", zap.Int("step", int(session.Current)))
 	}
@@ -151,6 +191,163 @@ func (h *MessageHandler) tryHandleTaskCreationMessage(ctx context.Context, updat
 	return true
 }
 
+func (h *MessageHandler) tryHandleTaskCreationCallback(ctx context.Context, update *schemes.MessageCallbackUpdate) bool {
+	payload := update.Callback.Payload
+	if payload == "" {
+		return false
+	}
+
+	var handled bool
+
+	switch payload {
+	case callbackTaskCreateModeOnline:
+		handled = h.handleTaskCreateMode(ctx, update, true)
+	case callbackTaskCreateModeOffline:
+		handled = h.handleTaskCreateMode(ctx, update, false)
+	case callbackTaskCreateSkipReward:
+		handled = h.handleTaskCreateSkipReward(ctx, update)
+	case callbackTaskCreateSkipMembers:
+		handled = h.handleTaskCreateSkipMembers(ctx, update)
+	case callbackTaskCreateConfirm:
+		handled = h.handleTaskCreateConfirm(ctx, update)
+	case callbackTaskCreateCancel:
+		handled = h.handleTaskCreateCancel(ctx, update)
+	case callbackTaskCreateRestart:
+		handled = h.handleTaskCreateRestart(ctx, update)
+	default:
+		return false
+	}
+
+	if handled {
+		h.answerCallback(ctx, update.Callback.CallbackID)
+	}
+
+	return handled
+}
+
+func (h *MessageHandler) taskSessionFromCallback(update *schemes.MessageCallbackUpdate) (*taskCreationSession, bool) {
+	if update == nil {
+		return nil, false
+	}
+	return h.taskSessions.get(update.Callback.User.UserId)
+}
+
+func (h *MessageHandler) handleTaskCreateMode(ctx context.Context, update *schemes.MessageCallbackUpdate, online bool) bool {
+	session, ok := h.taskSessionFromCallback(update)
+	if !ok || !session.isInProgress() {
+		return false
+	}
+
+	switch session.Current {
+	case taskStepFormat, taskStepLocation:
+	default:
+		return false
+	}
+
+	session.IsOnline = online
+	if online {
+		session.Latitude = 0
+		session.Longitude = 0
+		session.LocationLabel = ""
+		session.Current = taskStepReward
+		h.taskSessions.upsert(session)
+		h.promptTaskReward(ctx, session)
+	} else {
+		session.Current = taskStepLocation
+		h.taskSessions.upsert(session)
+		h.promptTaskLocation(ctx, session)
+	}
+
+	return true
+}
+
+func (h *MessageHandler) handleTaskCreateSkipReward(ctx context.Context, update *schemes.MessageCallbackUpdate) bool {
+	session, ok := h.taskSessionFromCallback(update)
+	if !ok || !session.isInProgress() {
+		return false
+	}
+
+	if session.Current != taskStepReward {
+		return false
+	}
+
+	session.Reward = 0
+	session.Current = taskStepMembers
+	h.taskSessions.upsert(session)
+	h.promptTaskMembers(ctx, session)
+	return true
+}
+
+func (h *MessageHandler) handleTaskCreateSkipMembers(ctx context.Context, update *schemes.MessageCallbackUpdate) bool {
+	session, ok := h.taskSessionFromCallback(update)
+	if !ok || !session.isInProgress() {
+		return false
+	}
+
+	if session.Current != taskStepMembers {
+		return false
+	}
+
+	if session.Members <= 0 {
+		session.Members = 1
+	}
+	session.Current = taskStepReview
+	h.taskSessions.upsert(session)
+	h.showTaskReview(ctx, session)
+	return true
+}
+
+func (h *MessageHandler) handleTaskCreateConfirm(ctx context.Context, update *schemes.MessageCallbackUpdate) bool {
+	session, ok := h.taskSessionFromCallback(update)
+	if !ok || !session.isInProgress() {
+		return false
+	}
+
+	if session.Current != taskStepReview {
+		return false
+	}
+
+	session.Current = taskStepComplete
+	h.taskSessions.upsert(session)
+	h.finalizeTaskCreation(ctx, session)
+	return true
+}
+
+func (h *MessageHandler) handleTaskCreateCancel(ctx context.Context, update *schemes.MessageCallbackUpdate) bool {
+	session, ok := h.taskSessionFromCallback(update)
+	if !ok {
+		return false
+	}
+
+	h.taskSessions.delete(session.UserID)
+	if session.CustomerID != "" {
+		h.showCustomerTasksMenu(ctx, session.ChatID, session.UserID, session.CustomerID, 0, h.taskCreateCancelText())
+	} else {
+		h.SendMainMenu(ctx, session.ChatID, session.UserID, h.taskCreateCancelText())
+	}
+
+	return true
+}
+
+func (h *MessageHandler) handleTaskCreateRestart(ctx context.Context, update *schemes.MessageCallbackUpdate) bool {
+	session, ok := h.taskSessionFromCallback(update)
+	if !ok || !session.isInProgress() {
+		return false
+	}
+
+	session.Name = ""
+	session.Description = ""
+	session.IsOnline = false
+	session.Latitude = 0
+	session.Longitude = 0
+	session.LocationLabel = ""
+	session.Reward = 0
+	session.Members = 1
+	session.Current = taskStepName
+	h.taskSessions.upsert(session)
+	h.startTaskCreationFlow(ctx, session)
+	return true
+}
 func (h *MessageHandler) handleCustomerManageTasks(ctx context.Context, update *schemes.MessageCallbackUpdate) {
 	if update.Message == nil {
 		return
@@ -240,11 +437,17 @@ func (h *MessageHandler) handleCustomerManageCreateTask(ctx context.Context, upd
 	}
 
 	session := &taskCreationSession{
-		UserID:     userID,
-		ChatID:     chatID,
-		CustomerID: strings.TrimSpace(customer.GetMaxId()),
-		Current:    taskStepName,
-		MessageID:  update.Message.Body.Mid,
+		UserID:        userID,
+		ChatID:        chatID,
+		CustomerID:    strings.TrimSpace(customer.GetMaxId()),
+		Current:       taskStepName,
+		MessageID:     update.Message.Body.Mid,
+		IsOnline:      false,
+		Latitude:      0,
+		Longitude:     0,
+		LocationLabel: "",
+		Reward:        0,
+		Members:       1,
 	}
 
 	h.startTaskCreationFlow(ctx, session)
@@ -259,11 +462,70 @@ func (h *MessageHandler) promptTaskDescription(ctx context.Context, session *tas
 	h.sendTaskSessionMessage(ctx, session, h.taskCreateDescriptionPromptText(), emptyKeyboard())
 }
 
+func (h *MessageHandler) promptTaskFormat(ctx context.Context, session *taskCreationSession) {
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddCallback(h.taskCreateFormatOfflineButton(), schemes.DEFAULT, callbackTaskCreateModeOffline).
+		AddCallback(h.taskCreateFormatOnlineButton(), schemes.DEFAULT, callbackTaskCreateModeOnline)
+	keyboard.AddRow().
+		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
+
+	h.sendTaskSessionMessage(ctx, session, h.taskCreateFormatPromptText(), keyboard)
+}
+
+func (h *MessageHandler) promptTaskLocation(ctx context.Context, session *taskCreationSession) {
+	h.sendTaskSessionMessage(ctx, session, h.taskCreateLocationPromptText(), h.taskCreateLocationKeyboard())
+}
+
+func (h *MessageHandler) promptTaskReward(ctx context.Context, session *taskCreationSession) {
+	h.sendTaskSessionMessage(ctx, session, h.taskCreateRewardPromptText(), h.taskCreateRewardKeyboard())
+}
+
+func (h *MessageHandler) promptTaskMembers(ctx context.Context, session *taskCreationSession) {
+	h.sendTaskSessionMessage(ctx, session, h.taskCreateMembersPromptText(), h.taskCreateMembersKeyboard())
+}
+
+func (h *MessageHandler) showTaskReview(ctx context.Context, session *taskCreationSession) {
+	h.sendTaskSessionMessage(ctx, session, h.taskCreateReviewText(session), h.taskCreateReviewKeyboard())
+}
+
 func (h *MessageHandler) finalizeTaskCreation(ctx context.Context, session *taskCreationSession) {
 	if h.task == nil {
 		h.sendTaskSessionMessage(ctx, session, h.taskServiceUnavailableText(), emptyKeyboard())
 		h.taskSessions.delete(session.UserID)
 		return
+	}
+
+	meta := make([]*taskpb.Meta, 0, 4)
+	taskType := "TT_OfflineTask"
+	if session.IsOnline {
+		taskType = "TT_OnlineTask"
+	}
+	meta = append(meta, &taskpb.Meta{Key: "task_type", Value: taskType})
+
+	if !session.IsOnline {
+		if geo := session.geoData(); geo != "" {
+			meta = append(meta, &taskpb.Meta{Key: "geo_data", Value: geo})
+		}
+		if label := strings.TrimSpace(session.LocationLabel); label != "" {
+			meta = append(meta, &taskpb.Meta{Key: "location_label", Value: label})
+		}
+	}
+
+	if session.Reward > 0 {
+		meta = append(meta, &taskpb.Meta{Key: "reward", Value: strconv.Itoa(session.Reward)})
+	}
+
+	if session.Members > 0 {
+		meta = append(meta, &taskpb.Meta{Key: "members_planned", Value: strconv.Itoa(session.Members)})
+	}
+
+	if session.Members <= 0 {
+		session.Members = 1
+	}
+
+	if session.Reward < 0 {
+		session.Reward = 0
 	}
 
 	req := &taskpb.CreateTaskRequest{
@@ -272,8 +534,9 @@ func (h *MessageHandler) finalizeTaskCreation(ctx context.Context, session *task
 			Name:             strings.TrimSpace(session.Name),
 			Description:      strings.TrimSpace(session.Description),
 			VerificationType: taskpb.VerificationType_VERIFICATION_TYPE_NONE,
-			Cost:             0,
-			MembersCount:     1,
+			Cost:             int32(session.Reward),
+			MembersCount:     int32(session.Members),
+			Meta:             meta,
 		},
 	}
 
@@ -1075,6 +1338,252 @@ func (h *MessageHandler) taskCreateDescriptionRetryText() string {
 		return text
 	}
 	return "Добавьте описание, чтобы волонтёры понимали, чем помочь."
+}
+
+func (h *MessageHandler) taskCreateFormatPromptText() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateFormatPrompt); text != "" {
+		return text
+	}
+	return "Какое это доброе дело? Выберите формат."
+}
+
+func (h *MessageHandler) taskCreateFormatOfflineButton() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateFormatOfflineButton); text != "" {
+		return text
+	}
+	return "🏠 На месте"
+}
+
+func (h *MessageHandler) taskCreateFormatOnlineButton() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateFormatOnlineButton); text != "" {
+		return text
+	}
+	return "💻 Онлайн"
+}
+
+func (h *MessageHandler) taskCreateCancelButton() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateCancelButton); text != "" {
+		return text
+	}
+	return "❌ Отменить"
+}
+
+func (h *MessageHandler) taskCreateLocationPromptText() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateLocationPrompt); text != "" {
+		return text
+	}
+	return "Поделитесь точкой на карте или напишите адрес, где нужна помощь."
+}
+
+func (h *MessageHandler) taskCreateLocationRetryText() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateLocationRetryText); text != "" {
+		return text
+	}
+	return "Не удалось получить локацию. Попробуйте ещё раз или нажмите кнопку отправки геопозиции."
+}
+
+func (h *MessageHandler) taskCreateLocationSendButton() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateLocationSendButton); text != "" {
+		return text
+	}
+	return "📍 Отправить локацию"
+}
+
+func (h *MessageHandler) taskCreateRewardPromptText() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateRewardPrompt); text != "" {
+		return text
+	}
+	return "Есть ли награда в добриках? Введите число или нажмите «Без награды»."
+}
+
+func (h *MessageHandler) taskCreateRewardRetryText() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateRewardRetryText); text != "" {
+		return text
+	}
+	return "Нужно указать число. Пример: 50"
+}
+
+func (h *MessageHandler) taskCreateRewardSkipButton() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateRewardSkipButton); text != "" {
+		return text
+	}
+	return "Без награды"
+}
+
+func (h *MessageHandler) taskCreateMembersPromptText() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateMembersPrompt); text != "" {
+		return text
+	}
+	return "Сколько волонтёров нужно? Введите число или оставьте 1."
+}
+
+func (h *MessageHandler) taskCreateMembersRetryText() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateMembersRetryText); text != "" {
+		return text
+	}
+	return "Пожалуйста, укажите число волонтёров (например, 1 или 3)."
+}
+
+func (h *MessageHandler) taskCreateMembersSkipButton() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateMembersSkipButton); text != "" {
+		return text
+	}
+	return "Только один"
+}
+
+func (h *MessageHandler) taskCreateCancelText() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateCancelText); text != "" {
+		return text
+	}
+	return "Создание доброго дела отменено."
+}
+
+func (h *MessageHandler) taskCreateReviewTemplate() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateReviewTemplate); text != "" {
+		return text
+	}
+	return "*Проверь детали:*\n\n• Название: %s\n• Описание: %s\n• Формат: %s\n• Локация: %s\n• Награда: %s\n• Волонтёров нужно: %s"
+}
+
+func (h *MessageHandler) taskCreateReviewConfirmButton() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateReviewConfirmButton); text != "" {
+		return text
+	}
+	return "✅ Опубликовать"
+}
+
+func (h *MessageHandler) taskCreateRestartButton() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateRestartButton); text != "" {
+		return text
+	}
+	return "🔄 Заполнить заново"
+}
+
+func (h *MessageHandler) taskCreateReviewNoRewardText() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateReviewNoReward); text != "" {
+		return text
+	}
+	return "без награды"
+}
+
+func (h *MessageHandler) taskCreateFormatOnlineLabel() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateFormatOnlineLabel); text != "" {
+		return text
+	}
+	return "онлайн"
+}
+
+func (h *MessageHandler) taskCreateFormatOfflineLabel() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateFormatOfflineLabel); text != "" {
+		return text
+	}
+	return "офлайн"
+}
+
+func (h *MessageHandler) taskCreateLocationFallbackLabel() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateLocationFallbackLabel); text != "" {
+		return text
+	}
+	return "точка на карте"
+}
+
+func (h *MessageHandler) taskCreateReviewKeyboard() *maxbot.Keyboard {
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddCallback(h.taskCreateReviewConfirmButton(), schemes.POSITIVE, callbackTaskCreateConfirm)
+	keyboard.AddRow().
+		AddCallback(h.taskCreateRestartButton(), schemes.DEFAULT, callbackTaskCreateRestart).
+		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
+	return keyboard
+}
+
+func (h *MessageHandler) taskCreateLocationKeyboard() *maxbot.Keyboard {
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddGeolocation(h.taskCreateLocationSendButton(), true)
+	keyboard.AddRow().
+		AddCallback(h.taskCreateFormatOnlineButton(), schemes.DEFAULT, callbackTaskCreateModeOnline).
+		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
+	return keyboard
+}
+
+func (h *MessageHandler) taskCreateRewardKeyboard() *maxbot.Keyboard {
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddCallback(h.taskCreateRewardSkipButton(), schemes.DEFAULT, callbackTaskCreateSkipReward)
+	keyboard.AddRow().
+		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
+	return keyboard
+}
+
+func (h *MessageHandler) taskCreateMembersKeyboard() *maxbot.Keyboard {
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddCallback(h.taskCreateMembersSkipButton(), schemes.DEFAULT, callbackTaskCreateSkipMembers)
+	keyboard.AddRow().
+		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
+	return keyboard
+}
+
+func (h *MessageHandler) taskCreateReviewText(session *taskCreationSession) string {
+	formatLabel := h.taskCreateFormatOfflineLabel()
+	if session.IsOnline {
+		formatLabel = h.taskCreateFormatOnlineLabel()
+	}
+
+	locationText := h.taskCreateLocationFallbackLabel()
+	if session.IsOnline {
+		locationText = h.taskCreateFormatOnlineLabel()
+	} else if label := strings.TrimSpace(session.LocationLabel); label != "" {
+		locationText = label
+	} else if geo := session.geoData(); geo != "" {
+		locationText = fmt.Sprintf("%s (%s)", h.taskCreateLocationFallbackLabel(), geo)
+	}
+
+	rewardText := h.taskCreateReviewNoRewardText()
+	if session.Reward > 0 {
+		rewardText = fmt.Sprintf("%d добриков", session.Reward)
+	}
+
+	members := session.Members
+	if members <= 0 {
+		members = 1
+	}
+
+	template := h.taskCreateReviewTemplate()
+	return fmt.Sprintf(template,
+		strings.TrimSpace(session.Name),
+		strings.TrimSpace(session.Description),
+		formatLabel,
+		locationText,
+		rewardText,
+		fmt.Sprintf("%d", members),
+	)
+}
+
+func parsePositiveInt(text string) (int, error) {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return 0, fmt.Errorf("empty")
+	}
+	value, err := strconv.Atoi(text)
+	if err != nil {
+		return 0, err
+	}
+	if value < 0 {
+		return 0, fmt.Errorf("negative")
+	}
+	return value, nil
+}
+
+func (s *taskCreationSession) geoData() string {
+	if s == nil {
+		return ""
+	}
+	if s.Latitude == 0 && s.Longitude == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.6f,%.6f", s.Latitude, s.Longitude)
 }
 
 func (h *MessageHandler) taskCreateSuccessText(name string) string {

@@ -168,6 +168,10 @@ func (h *MessageHandler) HandleCallbackQuery(ctx context.Context, callbackQuery 
 		return
 	}
 
+	if h.tryHandleTaskCreationCallback(ctx, callbackQuery) {
+		return
+	}
+
 	if h.handleMainMenuCallback(ctx, callbackQuery) {
 		return
 	}

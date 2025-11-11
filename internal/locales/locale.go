@@ -89,6 +89,27 @@ type Messages struct {
 	TaskCreateDescriptionRetryText     string   `json:"task_create_description_retry_text"`
 	TaskCreateSuccessText              string   `json:"task_create_success_text"`
 	TaskCreateErrorText                string   `json:"task_create_error_text"`
+	TaskCreateFormatPrompt             string   `json:"task_create_format_prompt"`
+	TaskCreateFormatOfflineButton      string   `json:"task_create_format_offline_button"`
+	TaskCreateFormatOnlineButton       string   `json:"task_create_format_online_button"`
+	TaskCreateFormatOfflineLabel       string   `json:"task_create_format_offline_label"`
+	TaskCreateFormatOnlineLabel        string   `json:"task_create_format_online_label"`
+	TaskCreateCancelButton             string   `json:"task_create_cancel_button"`
+	TaskCreateCancelText               string   `json:"task_create_cancel_text"`
+	TaskCreateLocationPrompt           string   `json:"task_create_location_prompt"`
+	TaskCreateLocationRetryText        string   `json:"task_create_location_retry_text"`
+	TaskCreateLocationSendButton       string   `json:"task_create_location_send_button"`
+	TaskCreateLocationFallbackLabel    string   `json:"task_create_location_fallback_label"`
+	TaskCreateRewardPrompt             string   `json:"task_create_reward_prompt"`
+	TaskCreateRewardRetryText          string   `json:"task_create_reward_retry_text"`
+	TaskCreateRewardSkipButton         string   `json:"task_create_reward_skip_button"`
+	TaskCreateMembersPrompt            string   `json:"task_create_members_prompt"`
+	TaskCreateMembersRetryText         string   `json:"task_create_members_retry_text"`
+	TaskCreateMembersSkipButton        string   `json:"task_create_members_skip_button"`
+	TaskCreateReviewTemplate           string   `json:"task_create_review_template"`
+	TaskCreateReviewConfirmButton      string   `json:"task_create_review_confirm_button"`
+	TaskCreateRestartButton            string   `json:"task_create_restart_button"`
+	TaskCreateReviewNoReward           string   `json:"task_create_review_no_reward"`
 	VolunteerTaskDetailTitle           string   `json:"volunteer_task_detail_title"`
 	VolunteerTaskJoinButton            string   `json:"volunteer_task_join_button"`
 	VolunteerTaskLeaveButton           string   `json:"volunteer_task_leave_button"`
@@ -428,6 +449,69 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.TaskCreateErrorText != "" {
 		base.TaskCreateErrorText = overrides.TaskCreateErrorText
 	}
+	if overrides.TaskCreateFormatPrompt != "" {
+		base.TaskCreateFormatPrompt = overrides.TaskCreateFormatPrompt
+	}
+	if overrides.TaskCreateFormatOfflineButton != "" {
+		base.TaskCreateFormatOfflineButton = overrides.TaskCreateFormatOfflineButton
+	}
+	if overrides.TaskCreateFormatOnlineButton != "" {
+		base.TaskCreateFormatOnlineButton = overrides.TaskCreateFormatOnlineButton
+	}
+	if overrides.TaskCreateFormatOfflineLabel != "" {
+		base.TaskCreateFormatOfflineLabel = overrides.TaskCreateFormatOfflineLabel
+	}
+	if overrides.TaskCreateFormatOnlineLabel != "" {
+		base.TaskCreateFormatOnlineLabel = overrides.TaskCreateFormatOnlineLabel
+	}
+	if overrides.TaskCreateCancelButton != "" {
+		base.TaskCreateCancelButton = overrides.TaskCreateCancelButton
+	}
+	if overrides.TaskCreateCancelText != "" {
+		base.TaskCreateCancelText = overrides.TaskCreateCancelText
+	}
+	if overrides.TaskCreateLocationPrompt != "" {
+		base.TaskCreateLocationPrompt = overrides.TaskCreateLocationPrompt
+	}
+	if overrides.TaskCreateLocationRetryText != "" {
+		base.TaskCreateLocationRetryText = overrides.TaskCreateLocationRetryText
+	}
+	if overrides.TaskCreateLocationSendButton != "" {
+		base.TaskCreateLocationSendButton = overrides.TaskCreateLocationSendButton
+	}
+	if overrides.TaskCreateLocationFallbackLabel != "" {
+		base.TaskCreateLocationFallbackLabel = overrides.TaskCreateLocationFallbackLabel
+	}
+	if overrides.TaskCreateRewardPrompt != "" {
+		base.TaskCreateRewardPrompt = overrides.TaskCreateRewardPrompt
+	}
+	if overrides.TaskCreateRewardRetryText != "" {
+		base.TaskCreateRewardRetryText = overrides.TaskCreateRewardRetryText
+	}
+	if overrides.TaskCreateRewardSkipButton != "" {
+		base.TaskCreateRewardSkipButton = overrides.TaskCreateRewardSkipButton
+	}
+	if overrides.TaskCreateMembersPrompt != "" {
+		base.TaskCreateMembersPrompt = overrides.TaskCreateMembersPrompt
+	}
+	if overrides.TaskCreateMembersRetryText != "" {
+		base.TaskCreateMembersRetryText = overrides.TaskCreateMembersRetryText
+	}
+	if overrides.TaskCreateMembersSkipButton != "" {
+		base.TaskCreateMembersSkipButton = overrides.TaskCreateMembersSkipButton
+	}
+	if overrides.TaskCreateReviewTemplate != "" {
+		base.TaskCreateReviewTemplate = overrides.TaskCreateReviewTemplate
+	}
+	if overrides.TaskCreateReviewConfirmButton != "" {
+		base.TaskCreateReviewConfirmButton = overrides.TaskCreateReviewConfirmButton
+	}
+	if overrides.TaskCreateRestartButton != "" {
+		base.TaskCreateRestartButton = overrides.TaskCreateRestartButton
+	}
+	if overrides.TaskCreateReviewNoReward != "" {
+		base.TaskCreateReviewNoReward = overrides.TaskCreateReviewNoReward
+	}
 	if overrides.VolunteerTaskDetailTitle != "" {
 		base.VolunteerTaskDetailTitle = overrides.VolunteerTaskDetailTitle
 	}
@@ -721,6 +805,27 @@ func defaultMessages() Messages {
 		TaskCreateDescriptionRetryText:     "Добавьте описание, чтобы волонтёры понимали, чем помочь.",
 		TaskCreateSuccessText:              "Доброе дело «%s» создано 💚",
 		TaskCreateErrorText:                "Не удалось создать задачу. Попробуйте позже.",
+		TaskCreateFormatPrompt:             "Какое это доброе дело? Выберите формат.",
+		TaskCreateFormatOfflineButton:      "🏠 Нужно прийти",
+		TaskCreateFormatOnlineButton:       "💻 Можно онлайн",
+		TaskCreateFormatOfflineLabel:       "офлайн",
+		TaskCreateFormatOnlineLabel:        "онлайн",
+		TaskCreateCancelButton:             "❌ Отменить",
+		TaskCreateCancelText:               "Создание доброго дела отменено.",
+		TaskCreateLocationPrompt:           "Поделитесь точкой на карте или напишите адрес, где нужна помощь.",
+		TaskCreateLocationRetryText:        "Не удалось получить локацию. Попробуйте ещё раз или воспользуйтесь кнопкой отправки геопозиции.",
+		TaskCreateLocationSendButton:       "📍 Отправить локацию",
+		TaskCreateLocationFallbackLabel:    "точка на карте",
+		TaskCreateRewardPrompt:             "Есть ли награда в добриках? Введите число или нажмите «Без награды».",
+		TaskCreateRewardRetryText:          "Нужно указать число. Пример: 50",
+		TaskCreateRewardSkipButton:         "Без награды",
+		TaskCreateMembersPrompt:            "Сколько волонтёров нужно? Введите число или оставьте 1.",
+		TaskCreateMembersRetryText:         "Пожалуйста, укажите число волонтёров (например, 1 или 3).",
+		TaskCreateMembersSkipButton:        "Только один",
+		TaskCreateReviewTemplate:           "*Проверь детали:*\n\n• Название: %s\n• Описание: %s\n• Формат: %s\n• Локация: %s\n• Награда: %s\n• Волонтёров нужно: %s",
+		TaskCreateReviewConfirmButton:      "✅ Опубликовать",
+		TaskCreateRestartButton:            "🔄 Заполнить заново",
+		TaskCreateReviewNoReward:           "без награды",
 		VolunteerTaskDetailTitle:           "*%s*",
 		VolunteerTaskJoinButton:            "Откликнуться",
 		VolunteerTaskLeaveButton:           "Отказаться",
