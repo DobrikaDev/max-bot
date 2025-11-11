@@ -167,14 +167,10 @@ func (h *MessageHandler) tryHandleTaskCreationMessage(ctx context.Context, updat
 			h.sendTaskSessionMessage(ctx, session, h.taskCreateLocationRetryText(), h.taskCreateLocationKeyboard())
 		}
 	case taskStepReward:
-		if amount, err := parsePositiveInt(text); err == nil {
-			session.Reward = amount
-			session.Current = taskStepMembers
-			h.taskSessions.upsert(session)
-			h.promptTaskMembers(ctx, session)
-		} else {
-			h.sendTaskSessionMessage(ctx, session, h.taskCreateRewardRetryText(), h.taskCreateRewardKeyboard())
-		}
+		session.Reward = h.defaultTaskReward()
+		session.Current = taskStepMembers
+		h.taskSessions.upsert(session)
+		h.promptTaskMembers(ctx, session)
 	case taskStepMembers:
 		if count, err := parsePositiveInt(text); err == nil && count > 0 {
 			session.Members = count
@@ -204,14 +200,12 @@ func (h *MessageHandler) tryHandleTaskCreationCallback(ctx context.Context, upda
 		handled = h.handleTaskCreateMode(ctx, update, true)
 	case callbackTaskCreateModeOffline:
 		handled = h.handleTaskCreateMode(ctx, update, false)
-	case callbackTaskCreateSkipReward:
-		handled = h.handleTaskCreateSkipReward(ctx, update)
+	case callbackTaskCreateSkipLocation:
+		handled = h.handleTaskCreateSkipLocation(ctx, update)
 	case callbackTaskCreateSkipMembers:
 		handled = h.handleTaskCreateSkipMembers(ctx, update)
 	case callbackTaskCreateConfirm:
 		handled = h.handleTaskCreateConfirm(ctx, update)
-	case callbackTaskCreateCancel:
-		handled = h.handleTaskCreateCancel(ctx, update)
 	case callbackTaskCreateRestart:
 		handled = h.handleTaskCreateRestart(ctx, update)
 	default:
@@ -261,20 +255,22 @@ func (h *MessageHandler) handleTaskCreateMode(ctx context.Context, update *schem
 	return true
 }
 
-func (h *MessageHandler) handleTaskCreateSkipReward(ctx context.Context, update *schemes.MessageCallbackUpdate) bool {
+func (h *MessageHandler) handleTaskCreateSkipLocation(ctx context.Context, update *schemes.MessageCallbackUpdate) bool {
 	session, ok := h.taskSessionFromCallback(update)
 	if !ok || !session.isInProgress() {
 		return false
 	}
 
-	if session.Current != taskStepReward {
+	if session.Current != taskStepLocation {
 		return false
 	}
 
-	session.Reward = 0
-	session.Current = taskStepMembers
+	session.Latitude = 0
+	session.Longitude = 0
+	session.LocationLabel = ""
+	session.Current = taskStepReward
 	h.taskSessions.upsert(session)
-	h.promptTaskMembers(ctx, session)
+	h.promptTaskReward(ctx, session)
 	return true
 }
 
@@ -310,22 +306,6 @@ func (h *MessageHandler) handleTaskCreateConfirm(ctx context.Context, update *sc
 	session.Current = taskStepComplete
 	h.taskSessions.upsert(session)
 	h.finalizeTaskCreation(ctx, session)
-	return true
-}
-
-func (h *MessageHandler) handleTaskCreateCancel(ctx context.Context, update *schemes.MessageCallbackUpdate) bool {
-	session, ok := h.taskSessionFromCallback(update)
-	if !ok {
-		return false
-	}
-
-	h.taskSessions.delete(session.UserID)
-	if session.CustomerID != "" {
-		h.showCustomerTasksMenu(ctx, session.ChatID, session.UserID, session.CustomerID, 0, h.taskCreateCancelText())
-	} else {
-		h.SendMainMenu(ctx, session.ChatID, session.UserID, h.taskCreateCancelText())
-	}
-
 	return true
 }
 
@@ -467,8 +447,6 @@ func (h *MessageHandler) promptTaskFormat(ctx context.Context, session *taskCrea
 	keyboard.AddRow().
 		AddCallback(h.taskCreateFormatOfflineButton(), schemes.DEFAULT, callbackTaskCreateModeOffline).
 		AddCallback(h.taskCreateFormatOnlineButton(), schemes.DEFAULT, callbackTaskCreateModeOnline)
-	keyboard.AddRow().
-		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
 
 	h.sendTaskSessionMessage(ctx, session, h.taskCreateFormatPromptText(), keyboard)
 }
@@ -478,7 +456,10 @@ func (h *MessageHandler) promptTaskLocation(ctx context.Context, session *taskCr
 }
 
 func (h *MessageHandler) promptTaskReward(ctx context.Context, session *taskCreationSession) {
-	h.sendTaskSessionMessage(ctx, session, h.taskCreateRewardPromptText(), h.taskCreateRewardKeyboard())
+	session.Reward = h.defaultTaskReward()
+	session.Current = taskStepMembers
+	h.taskSessions.upsert(session)
+	h.promptTaskMembers(ctx, session)
 }
 
 func (h *MessageHandler) promptTaskMembers(ctx context.Context, session *taskCreationSession) {
@@ -917,12 +898,7 @@ func (h *MessageHandler) buildVolunteerGeoTasksView(ctx context.Context, userID 
 	if err != nil {
 		if errors.Is(err, errVolunteerLocationMissing) {
 			builder.WriteString(h.volunteerLocationMissingText())
-			keyboard := h.api.Messages.NewKeyboardBuilder()
-			keyboard.AddRow().
-				AddCallback(h.volunteerLocationUpdateButton(), schemes.POSITIVE, callbackMainMenuProfile)
-			keyboard.AddRow().
-				AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
-			return builder.String(), keyboard
+			return builder.String(), h.volunteerLocationRequestKeyboard()
 		}
 		builder.WriteString(h.volunteerTasksErrorText())
 		return builder.String(), h.volunteerBackKeyboard()
@@ -1246,6 +1222,31 @@ func (h *MessageHandler) volunteerLocationUpdateButton() string {
 	return "📍 Обновить локацию"
 }
 
+func (h *MessageHandler) volunteerLocationSkipButton() string {
+	if text := strings.TrimSpace(h.messages.VolunteerTasksLocationSkipButton); text != "" {
+		return text
+	}
+	return "Пропустить"
+}
+
+func (h *MessageHandler) volunteerLocationSkipText() string {
+	if text := strings.TrimSpace(h.messages.VolunteerTasksLocationSkipText); text != "" {
+		return text
+	}
+	return "Хорошо, покажу список без локации. Можно в любой момент отправить геопозицию кнопкой 👇"
+}
+
+func (h *MessageHandler) volunteerLocationRequestKeyboard() *maxbot.Keyboard {
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	keyboard.AddRow().
+		AddGeolocation(h.volunteerLocationUpdateButton(), true)
+	keyboard.AddRow().
+		AddCallback(h.volunteerLocationSkipButton(), schemes.DEFAULT, callbackVolunteerLocationSkip)
+	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
+	return keyboard
+}
+
 func parseVolunteerTasksFilter(value string) volunteerTasksFilter {
 	switch volunteerTasksFilter(strings.TrimSpace(value)) {
 	case volunteerTasksFilterReward:
@@ -1361,13 +1362,6 @@ func (h *MessageHandler) taskCreateFormatOnlineButton() string {
 	return "💻 Онлайн"
 }
 
-func (h *MessageHandler) taskCreateCancelButton() string {
-	if text := strings.TrimSpace(h.messages.TaskCreateCancelButton); text != "" {
-		return text
-	}
-	return "❌ Отменить"
-}
-
 func (h *MessageHandler) taskCreateLocationPromptText() string {
 	if text := strings.TrimSpace(h.messages.TaskCreateLocationPrompt); text != "" {
 		return text
@@ -1387,6 +1381,13 @@ func (h *MessageHandler) taskCreateLocationSendButton() string {
 		return text
 	}
 	return "📍 Отправить локацию"
+}
+
+func (h *MessageHandler) taskCreateLocationSkipButton() string {
+	if text := strings.TrimSpace(h.messages.TaskCreateLocationSkipButton); text != "" {
+		return text
+	}
+	return "Пропустить локацию"
 }
 
 func (h *MessageHandler) taskCreateRewardPromptText() string {
@@ -1429,13 +1430,6 @@ func (h *MessageHandler) taskCreateMembersSkipButton() string {
 		return text
 	}
 	return "Только один"
-}
-
-func (h *MessageHandler) taskCreateCancelText() string {
-	if text := strings.TrimSpace(h.messages.TaskCreateCancelText); text != "" {
-		return text
-	}
-	return "Создание доброго дела отменено."
 }
 
 func (h *MessageHandler) taskCreateReviewTemplate() string {
@@ -1492,8 +1486,7 @@ func (h *MessageHandler) taskCreateReviewKeyboard() *maxbot.Keyboard {
 	keyboard.AddRow().
 		AddCallback(h.taskCreateReviewConfirmButton(), schemes.POSITIVE, callbackTaskCreateConfirm)
 	keyboard.AddRow().
-		AddCallback(h.taskCreateRestartButton(), schemes.DEFAULT, callbackTaskCreateRestart).
-		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
+		AddCallback(h.taskCreateRestartButton(), schemes.DEFAULT, callbackTaskCreateRestart)
 	return keyboard
 }
 
@@ -1502,26 +1495,19 @@ func (h *MessageHandler) taskCreateLocationKeyboard() *maxbot.Keyboard {
 	keyboard.AddRow().
 		AddGeolocation(h.taskCreateLocationSendButton(), true)
 	keyboard.AddRow().
-		AddCallback(h.taskCreateFormatOnlineButton(), schemes.DEFAULT, callbackTaskCreateModeOnline).
-		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
+		AddCallback(h.taskCreateLocationSkipButton(), schemes.DEFAULT, callbackTaskCreateSkipLocation).
+		AddCallback(h.taskCreateFormatOnlineButton(), schemes.DEFAULT, callbackTaskCreateModeOnline)
 	return keyboard
 }
 
 func (h *MessageHandler) taskCreateRewardKeyboard() *maxbot.Keyboard {
-	keyboard := h.api.Messages.NewKeyboardBuilder()
-	keyboard.AddRow().
-		AddCallback(h.taskCreateRewardSkipButton(), schemes.DEFAULT, callbackTaskCreateSkipReward)
-	keyboard.AddRow().
-		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
-	return keyboard
+	return h.api.Messages.NewKeyboardBuilder()
 }
 
 func (h *MessageHandler) taskCreateMembersKeyboard() *maxbot.Keyboard {
 	keyboard := h.api.Messages.NewKeyboardBuilder()
 	keyboard.AddRow().
 		AddCallback(h.taskCreateMembersSkipButton(), schemes.DEFAULT, callbackTaskCreateSkipMembers)
-	keyboard.AddRow().
-		AddCallback(h.taskCreateCancelButton(), schemes.NEGATIVE, callbackTaskCreateCancel)
 	return keyboard
 }
 
@@ -1574,6 +1560,10 @@ func parsePositiveInt(text string) (int, error) {
 		return 0, fmt.Errorf("negative")
 	}
 	return value, nil
+}
+
+func (h *MessageHandler) defaultTaskReward() int {
+	return 50
 }
 
 func (s *taskCreationSession) geoData() string {
@@ -1795,6 +1785,10 @@ func (h *MessageHandler) handleVolunteerTasksFilter(ctx context.Context, callbac
 	userID := callbackQuery.Callback.User.UserId
 
 	h.showVolunteerTasksList(ctx, chatID, userID, mode, filter, "", 0)
+}
+
+func (h *MessageHandler) handleVolunteerLocationSkip(ctx context.Context, chatID, userID int64) {
+	h.renderMenu(ctx, chatID, userID, h.volunteerLocationSkipText(), h.volunteerBackKeyboard())
 }
 
 func (h *MessageHandler) handleVolunteerTaskView(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, taskID string) {

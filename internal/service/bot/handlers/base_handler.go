@@ -493,6 +493,8 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeOnDemand, volunteerTasksFilterAll, "", 0)
 	case callbackVolunteerTasks:
 		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeAll, volunteerTasksFilterAll, "", 0)
+	case callbackVolunteerLocationSkip:
+		h.handleVolunteerLocationSkip(ctx, chatID, userID)
 	case callbackVolunteerBack:
 		h.showVolunteerMenu(ctx, chatID, userID)
 	case callbackProfileCoins:

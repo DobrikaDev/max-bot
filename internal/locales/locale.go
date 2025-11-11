@@ -74,6 +74,8 @@ type Messages struct {
 	VolunteerTasksFilterEmptyText      string   `json:"volunteer_tasks_filter_empty_text"`
 	VolunteerTasksLocationMissingText  string   `json:"volunteer_tasks_location_missing_text"`
 	VolunteerTasksLocationUpdateButton string   `json:"volunteer_tasks_location_update_button"`
+	VolunteerTasksLocationSkipButton   string   `json:"volunteer_tasks_location_skip_button"`
+	VolunteerTasksLocationSkipText     string   `json:"volunteer_tasks_location_skip_text"`
 	VolunteerTaskItemTemplate          string   `json:"volunteer_task_item_template"`
 	VolunteerOnDemandEmptyText         string   `json:"volunteer_on_demand_empty_text"`
 	VolunteerTasksPrevButton           string   `json:"volunteer_tasks_prev_button"`
@@ -94,11 +96,10 @@ type Messages struct {
 	TaskCreateFormatOnlineButton       string   `json:"task_create_format_online_button"`
 	TaskCreateFormatOfflineLabel       string   `json:"task_create_format_offline_label"`
 	TaskCreateFormatOnlineLabel        string   `json:"task_create_format_online_label"`
-	TaskCreateCancelButton             string   `json:"task_create_cancel_button"`
-	TaskCreateCancelText               string   `json:"task_create_cancel_text"`
 	TaskCreateLocationPrompt           string   `json:"task_create_location_prompt"`
 	TaskCreateLocationRetryText        string   `json:"task_create_location_retry_text"`
 	TaskCreateLocationSendButton       string   `json:"task_create_location_send_button"`
+	TaskCreateLocationSkipButton       string   `json:"task_create_location_skip_button"`
 	TaskCreateLocationFallbackLabel    string   `json:"task_create_location_fallback_label"`
 	TaskCreateRewardPrompt             string   `json:"task_create_reward_prompt"`
 	TaskCreateRewardRetryText          string   `json:"task_create_reward_retry_text"`
@@ -404,6 +405,12 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.VolunteerTasksLocationUpdateButton != "" {
 		base.VolunteerTasksLocationUpdateButton = overrides.VolunteerTasksLocationUpdateButton
 	}
+	if overrides.VolunteerTasksLocationSkipButton != "" {
+		base.VolunteerTasksLocationSkipButton = overrides.VolunteerTasksLocationSkipButton
+	}
+	if overrides.VolunteerTasksLocationSkipText != "" {
+		base.VolunteerTasksLocationSkipText = overrides.VolunteerTasksLocationSkipText
+	}
 	if overrides.VolunteerTaskItemTemplate != "" {
 		base.VolunteerTaskItemTemplate = overrides.VolunteerTaskItemTemplate
 	}
@@ -464,12 +471,6 @@ func mergeMessages(base, overrides Messages) Messages {
 	if overrides.TaskCreateFormatOnlineLabel != "" {
 		base.TaskCreateFormatOnlineLabel = overrides.TaskCreateFormatOnlineLabel
 	}
-	if overrides.TaskCreateCancelButton != "" {
-		base.TaskCreateCancelButton = overrides.TaskCreateCancelButton
-	}
-	if overrides.TaskCreateCancelText != "" {
-		base.TaskCreateCancelText = overrides.TaskCreateCancelText
-	}
 	if overrides.TaskCreateLocationPrompt != "" {
 		base.TaskCreateLocationPrompt = overrides.TaskCreateLocationPrompt
 	}
@@ -478,6 +479,9 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if overrides.TaskCreateLocationSendButton != "" {
 		base.TaskCreateLocationSendButton = overrides.TaskCreateLocationSendButton
+	}
+	if overrides.TaskCreateLocationSkipButton != "" {
+		base.TaskCreateLocationSkipButton = overrides.TaskCreateLocationSkipButton
 	}
 	if overrides.TaskCreateLocationFallbackLabel != "" {
 		base.TaskCreateLocationFallbackLabel = overrides.TaskCreateLocationFallbackLabel
@@ -790,6 +794,8 @@ func defaultMessages() Messages {
 		VolunteerTasksFilterEmptyText:      "По выбранному фильтру ничего не нашлось. Попробуй другой вариант 💚",
 		VolunteerTasksLocationMissingText:  "Чтобы увидеть добрые дела рядом, обнови локацию в профиле 💚",
 		VolunteerTasksLocationUpdateButton: "📍 Обновить локацию",
+		VolunteerTasksLocationSkipButton:   "Пропустить",
+		VolunteerTasksLocationSkipText:     "Хорошо, показываю без геолокации. Если передумаешь — просто пришли точку на карте 🌍",
 		VolunteerTaskItemTemplate:          "• *%s*\n%s",
 		VolunteerOnDemandEmptyText:         "У тебя пока нет активных откликов.",
 		VolunteerTasksPrevButton:           "⬅️ Назад",
@@ -810,11 +816,10 @@ func defaultMessages() Messages {
 		TaskCreateFormatOnlineButton:       "💻 Можно онлайн",
 		TaskCreateFormatOfflineLabel:       "офлайн",
 		TaskCreateFormatOnlineLabel:        "онлайн",
-		TaskCreateCancelButton:             "❌ Отменить",
-		TaskCreateCancelText:               "Создание доброго дела отменено.",
 		TaskCreateLocationPrompt:           "Поделитесь точкой на карте или напишите адрес, где нужна помощь.",
 		TaskCreateLocationRetryText:        "Не удалось получить локацию. Попробуйте ещё раз или воспользуйтесь кнопкой отправки геопозиции.",
 		TaskCreateLocationSendButton:       "📍 Отправить локацию",
+		TaskCreateLocationSkipButton:       "Пропустить локацию",
 		TaskCreateLocationFallbackLabel:    "точка на карте",
 		TaskCreateRewardPrompt:             "Есть ли награда в добриках? Введите число или нажмите «Без награды».",
 		TaskCreateRewardRetryText:          "Нужно указать число. Пример: 50",
