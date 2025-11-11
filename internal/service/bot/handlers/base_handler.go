@@ -305,15 +305,15 @@ func (h *MessageHandler) renderMenu(ctx context.Context, chatID, userID int64, t
 		if err := h.editInteractiveMessage(ctx, chatID, entry.UserID, entry.MessageID, text, keyboard); err == nil {
 			h.menus.set(chatID, entry.MessageID, userID)
 			return
-		}
+		} else {
+			if isRetryableMessageError(err) {
+				h.logger.Warn("deferring menu update due to retryable error", zap.Error(err), zap.Int64("chat_id", chatID))
+				return
+			}
 
-		if isRetryableMessageError(err) {
-			h.logger.Warn("deferring menu update due to retryable error", zap.Error(err), zap.Int64("chat_id", chatID))
-			return
+			h.logger.Warn("failed to update menu message", zap.Error(err), zap.Int64("chat_id", chatID))
+			h.menus.delete(chatID)
 		}
-
-		h.logger.Warn("failed to update menu message", zap.Error(err), zap.Int64("chat_id", chatID))
-		h.menus.delete(chatID)
 	}
 
 	messageID, err := h.sendInteractiveMessage(ctx, chatID, userID, text, keyboard)
