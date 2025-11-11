@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +25,30 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+func isRetryableMessageError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+
+	errMsg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(errMsg, "rate.limit"),
+		strings.Contains(errMsg, "429"),
+		strings.Contains(errMsg, "timeout"),
+		strings.Contains(errMsg, "request timeout"),
+		strings.Contains(errMsg, "internal server error"),
+		strings.Contains(errMsg, "502"),
+		strings.Contains(errMsg, "503"),
+		strings.Contains(errMsg, "504"):
+		return true
+	default:
+		return false
+	}
+}
 
 type MessageHandler struct {
 	api      *maxbot.Api
@@ -280,14 +305,24 @@ func (h *MessageHandler) renderMenu(ctx context.Context, chatID, userID int64, t
 		if err := h.editInteractiveMessage(ctx, chatID, entry.UserID, entry.MessageID, text, keyboard); err == nil {
 			h.menus.set(chatID, entry.MessageID, userID)
 			return
-		} else {
-			h.logger.Warn("failed to update menu message", zap.Error(err), zap.Int64("chat_id", chatID))
 		}
+
+		if isRetryableMessageError(err) {
+			h.logger.Warn("deferring menu update due to retryable error", zap.Error(err), zap.Int64("chat_id", chatID))
+			return
+		}
+
+		h.logger.Warn("failed to update menu message", zap.Error(err), zap.Int64("chat_id", chatID))
 		h.menus.delete(chatID)
 	}
 
 	messageID, err := h.sendInteractiveMessage(ctx, chatID, userID, text, keyboard)
 	if err != nil {
+		if isRetryableMessageError(err) {
+			h.logger.Warn("deferring menu send due to retryable error", zap.Error(err), zap.Int64("chat_id", chatID))
+			return
+		}
+
 		h.logger.Error("failed to send menu message", zap.Error(err), zap.Int64("chat_id", chatID))
 		return
 	}
