@@ -946,7 +946,16 @@ func (h *MessageHandler) buildVolunteerGeoTasksView(ctx context.Context, userID 
 	if joinedCount > 0 {
 		builder.WriteString(fmt.Sprintf("🌟 Твои отклики: %d\n", joinedCount))
 	}
-	builder.WriteString("\nВыбери дело ниже:\n")
+	builder.WriteString("\nВыбери дело ниже:\n\n")
+
+	for idx, entry := range filtered[start:end] {
+		if idx > 0 {
+			builder.WriteString("\n")
+		}
+		builder.WriteString(h.volunteerTaskListItemText(entry, start+idx+1))
+		builder.WriteString("\n")
+	}
+	builder.WriteString("\n")
 
 	keyboard := h.api.Messages.NewKeyboardBuilder()
 	h.appendVolunteerFilterRows(keyboard, volunteerTasksViewModeAll, filter)
@@ -1245,6 +1254,57 @@ func (h *MessageHandler) volunteerLocationRequestKeyboard() *maxbot.Keyboard {
 	keyboard.AddRow().
 		AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
 	return keyboard
+}
+
+func (h *MessageHandler) volunteerTaskListItemText(entry volunteerTaskDisplayEntry, number int) string {
+	var builder strings.Builder
+
+	name := safeTaskName(entry.task.GetName())
+	desc := safeTaskDescription(entry.task.GetDescription())
+
+	builder.WriteString(fmt.Sprintf("*%d. %s*", number, name))
+	builder.WriteString("\n")
+	builder.WriteString(desc)
+
+	formatLabel := h.taskCreateFormatOfflineLabel()
+	if entry.online {
+		formatLabel = h.taskCreateFormatOnlineLabel()
+	}
+	builder.WriteString("\n")
+	builder.WriteString(h.volunteerTasksListItemFormat(formatLabel))
+
+	meta := taskMetaMap(entry.task)
+	locationText := ""
+	if entry.online {
+		locationText = h.taskCreateFormatOnlineLabel()
+	} else if label := strings.TrimSpace(meta["location_label"]); label != "" {
+		locationText = label
+	} else if geo := strings.TrimSpace(meta["geo_data"]); geo != "" {
+		locationText = fmt.Sprintf("%s (%s)", h.taskCreateLocationFallbackLabel(), geo)
+	}
+	if locationText != "" {
+		builder.WriteString("\n")
+		builder.WriteString(h.volunteerTasksListItemLocation(locationText))
+	}
+
+	rewardAmount := entry.task.GetCost()
+	builder.WriteString("\n")
+	if rewardAmount > 0 {
+		builder.WriteString(h.volunteerTasksListItemReward(rewardAmount))
+	} else {
+		builder.WriteString(h.volunteerTasksListItemNoReward())
+	}
+
+	members := entry.task.GetMembersCount()
+	builder.WriteString("\n")
+	builder.WriteString(h.volunteerTasksListItemVolunteers(members))
+
+	if statusLabel := volunteerStatusLabel(entry.status); statusLabel != "" {
+		builder.WriteString("\n")
+		builder.WriteString(statusLabel)
+	}
+
+	return builder.String()
 }
 
 func parseVolunteerTasksFilter(value string) volunteerTasksFilter {
@@ -1566,6 +1626,51 @@ func (h *MessageHandler) defaultTaskReward() int {
 	return 50
 }
 
+func (h *MessageHandler) volunteerTasksListItemFormat(format string) string {
+	template := strings.TrimSpace(h.messages.VolunteerTasksListItemFormat)
+	if template == "" {
+		template = "Формат: %s"
+	}
+	return fmt.Sprintf(template, format)
+}
+
+func (h *MessageHandler) volunteerTasksListItemLocation(location string) string {
+	template := strings.TrimSpace(h.messages.VolunteerTasksListItemLocation)
+	if template == "" {
+		template = "Локация: %s"
+	}
+	return fmt.Sprintf(template, location)
+}
+
+func (h *MessageHandler) volunteerTasksListItemReward(amount int32) string {
+	template := strings.TrimSpace(h.messages.VolunteerTasksListItemReward)
+	if template == "" {
+		template = "Награда: %d добриков"
+	}
+	return fmt.Sprintf(template, amount)
+}
+
+func (h *MessageHandler) volunteerTasksListItemNoReward() string {
+	if text := strings.TrimSpace(h.messages.VolunteerTasksListItemNoReward); text != "" {
+		return text
+	}
+	return "Награда: не предусмотрена"
+}
+
+func (h *MessageHandler) volunteerTasksListItemVolunteers(count int32) string {
+	if count <= 1 {
+		if text := strings.TrimSpace(h.messages.VolunteerTasksListItemVolunteersOne); text != "" {
+			return text
+		}
+		return "Нужен 1 волонтёр"
+	}
+	template := strings.TrimSpace(h.messages.VolunteerTasksListItemVolunteersMany)
+	if template == "" {
+		template = "Нужно волонтёров: %d"
+	}
+	return fmt.Sprintf(template, count)
+}
+
 func (s *taskCreationSession) geoData() string {
 	if s == nil {
 		return ""
@@ -1574,6 +1679,27 @@ func (s *taskCreationSession) geoData() string {
 		return ""
 	}
 	return fmt.Sprintf("%.6f,%.6f", s.Latitude, s.Longitude)
+}
+
+func taskMetaMap(task *taskpb.Task) map[string]string {
+	result := make(map[string]string)
+	if task == nil {
+		return result
+	}
+
+	for _, meta := range task.GetMeta() {
+		if meta == nil {
+			continue
+		}
+		key := strings.TrimSpace(meta.GetKey())
+		value := strings.TrimSpace(meta.GetValue())
+		if key == "" || value == "" {
+			continue
+		}
+		result[key] = value
+	}
+
+	return result
 }
 
 func (h *MessageHandler) taskCreateSuccessText(name string) string {
@@ -1788,7 +1914,7 @@ func (h *MessageHandler) handleVolunteerTasksFilter(ctx context.Context, callbac
 }
 
 func (h *MessageHandler) handleVolunteerLocationSkip(ctx context.Context, chatID, userID int64) {
-	h.renderMenu(ctx, chatID, userID, h.volunteerLocationSkipText(), h.volunteerBackKeyboard())
+	h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeOnDemand, volunteerTasksFilterAll, h.volunteerLocationSkipText(), 0)
 }
 
 func (h *MessageHandler) handleVolunteerTaskView(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, taskID string) {
