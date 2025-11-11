@@ -27,6 +27,7 @@ const (
 	callbackVolunteerTaskLeave       = "volunteer:task:leave"
 	callbackVolunteerTaskConfirm     = "volunteer:task:confirm"
 	callbackVolunteerTasksPage       = "volunteer:tasks:page"
+	callbackVolunteerTasksFilter     = "volunteer:tasks:filter"
 	callbackCustomerTaskView         = "customer:task:view"
 	callbackCustomerTaskAssignment   = "customer:task:assignment"
 	callbackCustomerTaskApprove      = "customer:task:approve"

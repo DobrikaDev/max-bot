@@ -11,144 +11,155 @@ import (
 var rawRU []byte
 
 type Messages struct {
-	MainMenuText                      string   `json:"main_menu_text"`
-	MainMenuButtons                   []string `json:"main_menu_buttons"`
-	CustomerServiceUnavailableText    string   `json:"customer_service_unavailable_text"`
-	CustomerLookupErrorText           string   `json:"customer_lookup_error_text"`
-	CustomerFormIntroText             string   `json:"customer_form_intro_text"`
-	CustomerSummaryTitle              string   `json:"customer_summary_title"`
-	CustomerSummaryTemplate           string   `json:"customer_summary_template"`
-	CustomerTypePrompt                string   `json:"customer_type_prompt"`
-	CustomerTypeIndividualButton      string   `json:"customer_type_individual_button"`
-	CustomerTypeBusinessButton        string   `json:"customer_type_business_button"`
-	CustomerTypeIndividualLabel       string   `json:"customer_type_individual_label"`
-	CustomerTypeBusinessLabel         string   `json:"customer_type_business_label"`
-	CustomerNamePrompt                string   `json:"customer_name_prompt"`
-	CustomerNameRetryText             string   `json:"customer_name_retry_text"`
-	CustomerNamePromptIndividual      string   `json:"customer_name_prompt_individual"`
-	CustomerNamePromptBusiness        string   `json:"customer_name_prompt_business"`
-	CustomerNameRetryIndividual       string   `json:"customer_name_retry_individual"`
-	CustomerNameRetryBusiness         string   `json:"customer_name_retry_business"`
-	CustomerAboutPrompt               string   `json:"customer_about_prompt"`
-	CustomerAboutRetryText            string   `json:"customer_about_retry_text"`
-	CustomerAboutPromptIndividual     string   `json:"customer_about_prompt_individual"`
-	CustomerAboutPromptBusiness       string   `json:"customer_about_prompt_business"`
-	CustomerAboutRetryIndividual      string   `json:"customer_about_retry_individual"`
-	CustomerAboutRetryBusiness        string   `json:"customer_about_retry_business"`
-	CustomerCreateSuccessText         string   `json:"customer_create_success_text"`
-	CustomerUpdateSuccessText         string   `json:"customer_update_success_text"`
-	CustomerSaveErrorText             string   `json:"customer_save_error_text"`
-	CustomerManageCreateButton        string   `json:"customer_manage_create_button"`
-	CustomerManageUpdateButton        string   `json:"customer_manage_update_button"`
-	CustomerManageDeleteButton        string   `json:"customer_manage_delete_button"`
-	CustomerManageBackButton          string   `json:"customer_manage_back_button"`
-	CustomerManageTasksButton         string   `json:"customer_manage_tasks_button"`
-	CustomerManageCreateTaskButton    string   `json:"customer_manage_create_task_button"`
-	CustomerTasksListText             string   `json:"customer_tasks_list_text"`
-	CustomerCreateTaskPlaceholderText string   `json:"customer_create_task_placeholder_text"`
-	CustomerTasksEmptyText            string   `json:"customer_tasks_empty_text"`
-	CustomerTaskItemTemplate          string   `json:"customer_task_item_template"`
-	CustomerTasksPrevButton           string   `json:"customer_tasks_prev_button"`
-	CustomerTasksNextButton           string   `json:"customer_tasks_next_button"`
-	CustomerTasksPageFooter           string   `json:"customer_tasks_page_footer"`
-	CustomerTaskRewardDescription     string   `json:"customer_task_reward_description"`
-	VolunteerMenuIntro                string   `json:"volunteer_menu_intro"`
-	VolunteerMenuOnDemandButton       string   `json:"volunteer_menu_on_demand_button"`
-	VolunteerMenuTasksButton          string   `json:"volunteer_menu_tasks_button"`
-	VolunteerMenuProfileButton        string   `json:"volunteer_menu_profile_button"`
-	VolunteerMenuBackButton           string   `json:"volunteer_menu_back_button"`
-	VolunteerMenuMainButton           string   `json:"volunteer_menu_main_button"`
-	VolunteerOnDemandPlaceholder      string   `json:"volunteer_on_demand_placeholder"`
-	VolunteerTasksPlaceholder         string   `json:"volunteer_tasks_placeholder"`
-	VolunteerTasksUnavailableText     string   `json:"volunteer_tasks_unavailable_text"`
-	VolunteerTasksErrorText           string   `json:"volunteer_tasks_error_text"`
-	VolunteerTasksEmptyText           string   `json:"volunteer_tasks_empty_text"`
-	VolunteerTaskItemTemplate         string   `json:"volunteer_task_item_template"`
-	VolunteerOnDemandEmptyText        string   `json:"volunteer_on_demand_empty_text"`
-	VolunteerTasksPrevButton          string   `json:"volunteer_tasks_prev_button"`
-	VolunteerTasksNextButton          string   `json:"volunteer_tasks_next_button"`
-	VolunteerTasksPageFooter          string   `json:"volunteer_tasks_page_footer"`
-	VolunteerTaskRewardNotification   string   `json:"volunteer_task_reward_notification"`
-	TaskServiceUnavailableText        string   `json:"task_service_unavailable_text"`
-	TaskFetchErrorText                string   `json:"task_fetch_error_text"`
-	TaskCreateNoCustomerText          string   `json:"task_create_no_customer_text"`
-	TaskCreateNamePrompt              string   `json:"task_create_name_prompt"`
-	TaskCreateNameRetryText           string   `json:"task_create_name_retry_text"`
-	TaskCreateDescriptionPrompt       string   `json:"task_create_description_prompt"`
-	TaskCreateDescriptionRetryText    string   `json:"task_create_description_retry_text"`
-	TaskCreateSuccessText             string   `json:"task_create_success_text"`
-	TaskCreateErrorText               string   `json:"task_create_error_text"`
-	VolunteerTaskDetailTitle          string   `json:"volunteer_task_detail_title"`
-	VolunteerTaskJoinButton           string   `json:"volunteer_task_join_button"`
-	VolunteerTaskLeaveButton          string   `json:"volunteer_task_leave_button"`
-	VolunteerTaskConfirmButton        string   `json:"volunteer_task_confirm_button"`
-	VolunteerTaskJoinSuccessText      string   `json:"volunteer_task_join_success_text"`
-	VolunteerTaskJoinErrorText        string   `json:"volunteer_task_join_error_text"`
-	VolunteerTaskLeaveSuccessText     string   `json:"volunteer_task_leave_success_text"`
-	VolunteerTaskLeaveErrorText       string   `json:"volunteer_task_leave_error_text"`
-	VolunteerTaskConfirmSuccessText   string   `json:"volunteer_task_confirm_success_text"`
-	VolunteerTaskConfirmErrorText     string   `json:"volunteer_task_confirm_error_text"`
-	VolunteerTaskDetailBackButton     string   `json:"volunteer_task_detail_back_button"`
-	CustomerTaskDetailTitle           string   `json:"customer_task_detail_title"`
-	CustomerTaskApproveButton         string   `json:"customer_task_approve_button"`
-	CustomerTaskRejectButton          string   `json:"customer_task_reject_button"`
-	CustomerTaskApproveSuccessText    string   `json:"customer_task_approve_success_text"`
-	CustomerTaskRejectSuccessText     string   `json:"customer_task_reject_success_text"`
-	CustomerTaskDecisionErrorText     string   `json:"customer_task_decision_error_text"`
-	CustomerDeleteConfirmText         string   `json:"customer_delete_confirm_text"`
-	CustomerDeleteConfirmButton       string   `json:"customer_delete_confirm_button"`
-	CustomerDeleteCancelButton        string   `json:"customer_delete_cancel_button"`
-	CustomerDeleteSuccessText         string   `json:"customer_delete_success_text"`
-	CustomerDeleteErrorText           string   `json:"customer_delete_error_text"`
-	ProfileTitle                      string   `json:"profile_title"`
-	ProfileSkillsTitle                string   `json:"profile_skills_title"`
-	ProfileLevelBalanceTemplate       string   `json:"profile_level_balance_template"`
-	ProfileHistoryButton              string   `json:"profile_history_button"`
-	ProfileEditButton                 string   `json:"profile_edit_button"`
-	ProfileSecurityButton             string   `json:"profile_security_button"`
-	ProfileBackButton                 string   `json:"profile_back_button"`
-	ProfileCoinsButton                string   `json:"profile_coins_button"`
-	ProfileSecurityTitle              string   `json:"profile_security_title"`
-	ProfileSecurityText               string   `json:"profile_security_text"`
-	ProfileSecuritySOSButton          string   `json:"profile_security_sos_button"`
-	ProfileSecuritySOSLink            string   `json:"profile_security_sos_link"`
-	ProfileHistoryText                string   `json:"profile_history_text"`
-	ProfileEditText                   string   `json:"profile_edit_text"`
-	RegistrationStartText             string   `json:"registration_start_text"`
-	RegistrationAgeRetryText          string   `json:"registration_age_retry_text"`
-	RegistrationAgeUnder18Button      string   `json:"registration_age_under_18_button"`
-	RegistrationAge18_24Button        string   `json:"registration_age_18_24_button"`
-	RegistrationAge25_34Button        string   `json:"registration_age_25_34_button"`
-	RegistrationAge35_44Button        string   `json:"registration_age_35_44_button"`
-	RegistrationAge45_54Button        string   `json:"registration_age_45_54_button"`
-	RegistrationAge55_64Button        string   `json:"registration_age_55_64_button"`
-	RegistrationAge65PlusButton       string   `json:"registration_age_65_plus_button"`
-	RegistrationSexPrompt             string   `json:"registration_sex_prompt"`
-	RegistrationSexMaleText           string   `json:"registration_sex_male_text"`
-	RegistrationSexFemaleText         string   `json:"registration_sex_female_text"`
-	RegistrationLocationPrompt        string   `json:"registration_location_prompt"`
-	RegistrationLocationGeoButton     string   `json:"registration_location_geo_button"`
-	RegistrationLocationSkipButton    string   `json:"registration_location_skip_button"`
-	RegistrationLocationRetryText     string   `json:"registration_location_retry_text"`
-	RegistrationAboutPrompt           string   `json:"registration_about_prompt"`
-	RegistrationAboutConfirmButton    string   `json:"registration_about_confirm_button"`
-	RegistrationAboutOptions          []string `json:"registration_about_options"`
-	RegistrationErrorText             string   `json:"registration_error_text"`
-	RegistrationCompleteText          string   `json:"registration_complete_text"`
-	NewUserWelcomeText                string   `json:"new_user_welcome_text"`
-	NewUserJoinButton                 string   `json:"new_user_join_button"`
-	CoinsIntroText                    string   `json:"coins_intro_text"`
-	CoinsButtons                      []string `json:"coins_buttons"`
-	CoinsHowToGetText                 string   `json:"coins_how_to_get_text"`
-	CoinsHowToSpendText               string   `json:"coins_how_to_spend_text"`
-	CoinsLevelsText                   string   `json:"coins_levels_text"`
-	CoinsBackButton                   string   `json:"coins_back_button"`
-	AboutDobrikaText                  string   `json:"about_dobrika_text"`
-	AboutDobrikaButtons               []string `json:"about_dobrika_buttons"`
-	AboutDobrikaHowText               string   `json:"about_dobrika_how_text"`
-	AboutDobrikaRulesText             string   `json:"about_dobrika_rules_text"`
-	AboutDobrikaInitiatorText         string   `json:"about_dobrika_initiator_text"`
-	AboutDobrikaSupportText           string   `json:"about_dobrika_support_text"`
+	MainMenuText                       string   `json:"main_menu_text"`
+	MainMenuButtons                    []string `json:"main_menu_buttons"`
+	CustomerServiceUnavailableText     string   `json:"customer_service_unavailable_text"`
+	CustomerLookupErrorText            string   `json:"customer_lookup_error_text"`
+	CustomerFormIntroText              string   `json:"customer_form_intro_text"`
+	CustomerSummaryTitle               string   `json:"customer_summary_title"`
+	CustomerSummaryTemplate            string   `json:"customer_summary_template"`
+	CustomerTypePrompt                 string   `json:"customer_type_prompt"`
+	CustomerTypeIndividualButton       string   `json:"customer_type_individual_button"`
+	CustomerTypeBusinessButton         string   `json:"customer_type_business_button"`
+	CustomerTypeIndividualLabel        string   `json:"customer_type_individual_label"`
+	CustomerTypeBusinessLabel          string   `json:"customer_type_business_label"`
+	CustomerNamePrompt                 string   `json:"customer_name_prompt"`
+	CustomerNameRetryText              string   `json:"customer_name_retry_text"`
+	CustomerNamePromptIndividual       string   `json:"customer_name_prompt_individual"`
+	CustomerNamePromptBusiness         string   `json:"customer_name_prompt_business"`
+	CustomerNameRetryIndividual        string   `json:"customer_name_retry_individual"`
+	CustomerNameRetryBusiness          string   `json:"customer_name_retry_business"`
+	CustomerAboutPrompt                string   `json:"customer_about_prompt"`
+	CustomerAboutRetryText             string   `json:"customer_about_retry_text"`
+	CustomerAboutPromptIndividual      string   `json:"customer_about_prompt_individual"`
+	CustomerAboutPromptBusiness        string   `json:"customer_about_prompt_business"`
+	CustomerAboutRetryIndividual       string   `json:"customer_about_retry_individual"`
+	CustomerAboutRetryBusiness         string   `json:"customer_about_retry_business"`
+	CustomerCreateSuccessText          string   `json:"customer_create_success_text"`
+	CustomerUpdateSuccessText          string   `json:"customer_update_success_text"`
+	CustomerSaveErrorText              string   `json:"customer_save_error_text"`
+	CustomerManageCreateButton         string   `json:"customer_manage_create_button"`
+	CustomerManageUpdateButton         string   `json:"customer_manage_update_button"`
+	CustomerManageDeleteButton         string   `json:"customer_manage_delete_button"`
+	CustomerManageBackButton           string   `json:"customer_manage_back_button"`
+	CustomerManageTasksButton          string   `json:"customer_manage_tasks_button"`
+	CustomerManageCreateTaskButton     string   `json:"customer_manage_create_task_button"`
+	CustomerTasksListText              string   `json:"customer_tasks_list_text"`
+	CustomerCreateTaskPlaceholderText  string   `json:"customer_create_task_placeholder_text"`
+	CustomerTasksEmptyText             string   `json:"customer_tasks_empty_text"`
+	CustomerTaskItemTemplate           string   `json:"customer_task_item_template"`
+	CustomerTasksPrevButton            string   `json:"customer_tasks_prev_button"`
+	CustomerTasksNextButton            string   `json:"customer_tasks_next_button"`
+	CustomerTasksPageFooter            string   `json:"customer_tasks_page_footer"`
+	CustomerTaskRewardDescription      string   `json:"customer_task_reward_description"`
+	VolunteerMenuIntro                 string   `json:"volunteer_menu_intro"`
+	VolunteerMenuOnDemandButton        string   `json:"volunteer_menu_on_demand_button"`
+	VolunteerMenuTasksButton           string   `json:"volunteer_menu_tasks_button"`
+	VolunteerMenuProfileButton         string   `json:"volunteer_menu_profile_button"`
+	VolunteerMenuBackButton            string   `json:"volunteer_menu_back_button"`
+	VolunteerMenuMainButton            string   `json:"volunteer_menu_main_button"`
+	VolunteerOnDemandPlaceholder       string   `json:"volunteer_on_demand_placeholder"`
+	VolunteerTasksPlaceholder          string   `json:"volunteer_tasks_placeholder"`
+	VolunteerTasksUnavailableText      string   `json:"volunteer_tasks_unavailable_text"`
+	VolunteerTasksErrorText            string   `json:"volunteer_tasks_error_text"`
+	VolunteerTasksEmptyText            string   `json:"volunteer_tasks_empty_text"`
+	VolunteerTasksFilterAllButton      string   `json:"volunteer_tasks_filter_all_button"`
+	VolunteerTasksFilterRewardButton   string   `json:"volunteer_tasks_filter_reward_button"`
+	VolunteerTasksFilterTeamButton     string   `json:"volunteer_tasks_filter_team_button"`
+	VolunteerTasksFilterOnlineButton   string   `json:"volunteer_tasks_filter_online_button"`
+	VolunteerTasksFilterAllLabel       string   `json:"volunteer_tasks_filter_all_label"`
+	VolunteerTasksFilterRewardLabel    string   `json:"volunteer_tasks_filter_reward_label"`
+	VolunteerTasksFilterTeamLabel      string   `json:"volunteer_tasks_filter_team_label"`
+	VolunteerTasksFilterOnlineLabel    string   `json:"volunteer_tasks_filter_online_label"`
+	VolunteerTasksFilterEmptyText      string   `json:"volunteer_tasks_filter_empty_text"`
+	VolunteerTasksLocationMissingText  string   `json:"volunteer_tasks_location_missing_text"`
+	VolunteerTasksLocationUpdateButton string   `json:"volunteer_tasks_location_update_button"`
+	VolunteerTaskItemTemplate          string   `json:"volunteer_task_item_template"`
+	VolunteerOnDemandEmptyText         string   `json:"volunteer_on_demand_empty_text"`
+	VolunteerTasksPrevButton           string   `json:"volunteer_tasks_prev_button"`
+	VolunteerTasksNextButton           string   `json:"volunteer_tasks_next_button"`
+	VolunteerTasksPageFooter           string   `json:"volunteer_tasks_page_footer"`
+	VolunteerTaskRewardNotification    string   `json:"volunteer_task_reward_notification"`
+	TaskServiceUnavailableText         string   `json:"task_service_unavailable_text"`
+	TaskFetchErrorText                 string   `json:"task_fetch_error_text"`
+	TaskCreateNoCustomerText           string   `json:"task_create_no_customer_text"`
+	TaskCreateNamePrompt               string   `json:"task_create_name_prompt"`
+	TaskCreateNameRetryText            string   `json:"task_create_name_retry_text"`
+	TaskCreateDescriptionPrompt        string   `json:"task_create_description_prompt"`
+	TaskCreateDescriptionRetryText     string   `json:"task_create_description_retry_text"`
+	TaskCreateSuccessText              string   `json:"task_create_success_text"`
+	TaskCreateErrorText                string   `json:"task_create_error_text"`
+	VolunteerTaskDetailTitle           string   `json:"volunteer_task_detail_title"`
+	VolunteerTaskJoinButton            string   `json:"volunteer_task_join_button"`
+	VolunteerTaskLeaveButton           string   `json:"volunteer_task_leave_button"`
+	VolunteerTaskConfirmButton         string   `json:"volunteer_task_confirm_button"`
+	VolunteerTaskJoinSuccessText       string   `json:"volunteer_task_join_success_text"`
+	VolunteerTaskJoinErrorText         string   `json:"volunteer_task_join_error_text"`
+	VolunteerTaskLeaveSuccessText      string   `json:"volunteer_task_leave_success_text"`
+	VolunteerTaskLeaveErrorText        string   `json:"volunteer_task_leave_error_text"`
+	VolunteerTaskConfirmSuccessText    string   `json:"volunteer_task_confirm_success_text"`
+	VolunteerTaskConfirmErrorText      string   `json:"volunteer_task_confirm_error_text"`
+	VolunteerTaskDetailBackButton      string   `json:"volunteer_task_detail_back_button"`
+	CustomerTaskDetailTitle            string   `json:"customer_task_detail_title"`
+	CustomerTaskApproveButton          string   `json:"customer_task_approve_button"`
+	CustomerTaskRejectButton           string   `json:"customer_task_reject_button"`
+	CustomerTaskApproveSuccessText     string   `json:"customer_task_approve_success_text"`
+	CustomerTaskRejectSuccessText      string   `json:"customer_task_reject_success_text"`
+	CustomerTaskDecisionErrorText      string   `json:"customer_task_decision_error_text"`
+	CustomerDeleteConfirmText          string   `json:"customer_delete_confirm_text"`
+	CustomerDeleteConfirmButton        string   `json:"customer_delete_confirm_button"`
+	CustomerDeleteCancelButton         string   `json:"customer_delete_cancel_button"`
+	CustomerDeleteSuccessText          string   `json:"customer_delete_success_text"`
+	CustomerDeleteErrorText            string   `json:"customer_delete_error_text"`
+	ProfileTitle                       string   `json:"profile_title"`
+	ProfileSkillsTitle                 string   `json:"profile_skills_title"`
+	ProfileLevelBalanceTemplate        string   `json:"profile_level_balance_template"`
+	ProfileHistoryButton               string   `json:"profile_history_button"`
+	ProfileEditButton                  string   `json:"profile_edit_button"`
+	ProfileSecurityButton              string   `json:"profile_security_button"`
+	ProfileBackButton                  string   `json:"profile_back_button"`
+	ProfileCoinsButton                 string   `json:"profile_coins_button"`
+	ProfileSecurityTitle               string   `json:"profile_security_title"`
+	ProfileSecurityText                string   `json:"profile_security_text"`
+	ProfileSecuritySOSButton           string   `json:"profile_security_sos_button"`
+	ProfileSecuritySOSLink             string   `json:"profile_security_sos_link"`
+	ProfileHistoryText                 string   `json:"profile_history_text"`
+	ProfileEditText                    string   `json:"profile_edit_text"`
+	RegistrationStartText              string   `json:"registration_start_text"`
+	RegistrationAgeRetryText           string   `json:"registration_age_retry_text"`
+	RegistrationAgeUnder18Button       string   `json:"registration_age_under_18_button"`
+	RegistrationAge18_24Button         string   `json:"registration_age_18_24_button"`
+	RegistrationAge25_34Button         string   `json:"registration_age_25_34_button"`
+	RegistrationAge35_44Button         string   `json:"registration_age_35_44_button"`
+	RegistrationAge45_54Button         string   `json:"registration_age_45_54_button"`
+	RegistrationAge55_64Button         string   `json:"registration_age_55_64_button"`
+	RegistrationAge65PlusButton        string   `json:"registration_age_65_plus_button"`
+	RegistrationSexPrompt              string   `json:"registration_sex_prompt"`
+	RegistrationSexMaleText            string   `json:"registration_sex_male_text"`
+	RegistrationSexFemaleText          string   `json:"registration_sex_female_text"`
+	RegistrationLocationPrompt         string   `json:"registration_location_prompt"`
+	RegistrationLocationGeoButton      string   `json:"registration_location_geo_button"`
+	RegistrationLocationSkipButton     string   `json:"registration_location_skip_button"`
+	RegistrationLocationRetryText      string   `json:"registration_location_retry_text"`
+	RegistrationAboutPrompt            string   `json:"registration_about_prompt"`
+	RegistrationAboutConfirmButton     string   `json:"registration_about_confirm_button"`
+	RegistrationAboutOptions           []string `json:"registration_about_options"`
+	RegistrationErrorText              string   `json:"registration_error_text"`
+	RegistrationCompleteText           string   `json:"registration_complete_text"`
+	NewUserWelcomeText                 string   `json:"new_user_welcome_text"`
+	NewUserJoinButton                  string   `json:"new_user_join_button"`
+	CoinsIntroText                     string   `json:"coins_intro_text"`
+	CoinsButtons                       []string `json:"coins_buttons"`
+	CoinsHowToGetText                  string   `json:"coins_how_to_get_text"`
+	CoinsHowToSpendText                string   `json:"coins_how_to_spend_text"`
+	CoinsLevelsText                    string   `json:"coins_levels_text"`
+	CoinsBackButton                    string   `json:"coins_back_button"`
+	AboutDobrikaText                   string   `json:"about_dobrika_text"`
+	AboutDobrikaButtons                []string `json:"about_dobrika_buttons"`
+	AboutDobrikaHowText                string   `json:"about_dobrika_how_text"`
+	AboutDobrikaRulesText              string   `json:"about_dobrika_rules_text"`
+	AboutDobrikaInitiatorText          string   `json:"about_dobrika_initiator_text"`
+	AboutDobrikaSupportText            string   `json:"about_dobrika_support_text"`
 }
 
 var (
@@ -338,6 +349,39 @@ func mergeMessages(base, overrides Messages) Messages {
 	}
 	if overrides.VolunteerTasksEmptyText != "" {
 		base.VolunteerTasksEmptyText = overrides.VolunteerTasksEmptyText
+	}
+	if overrides.VolunteerTasksFilterAllButton != "" {
+		base.VolunteerTasksFilterAllButton = overrides.VolunteerTasksFilterAllButton
+	}
+	if overrides.VolunteerTasksFilterRewardButton != "" {
+		base.VolunteerTasksFilterRewardButton = overrides.VolunteerTasksFilterRewardButton
+	}
+	if overrides.VolunteerTasksFilterTeamButton != "" {
+		base.VolunteerTasksFilterTeamButton = overrides.VolunteerTasksFilterTeamButton
+	}
+	if overrides.VolunteerTasksFilterOnlineButton != "" {
+		base.VolunteerTasksFilterOnlineButton = overrides.VolunteerTasksFilterOnlineButton
+	}
+	if overrides.VolunteerTasksFilterAllLabel != "" {
+		base.VolunteerTasksFilterAllLabel = overrides.VolunteerTasksFilterAllLabel
+	}
+	if overrides.VolunteerTasksFilterRewardLabel != "" {
+		base.VolunteerTasksFilterRewardLabel = overrides.VolunteerTasksFilterRewardLabel
+	}
+	if overrides.VolunteerTasksFilterTeamLabel != "" {
+		base.VolunteerTasksFilterTeamLabel = overrides.VolunteerTasksFilterTeamLabel
+	}
+	if overrides.VolunteerTasksFilterOnlineLabel != "" {
+		base.VolunteerTasksFilterOnlineLabel = overrides.VolunteerTasksFilterOnlineLabel
+	}
+	if overrides.VolunteerTasksFilterEmptyText != "" {
+		base.VolunteerTasksFilterEmptyText = overrides.VolunteerTasksFilterEmptyText
+	}
+	if overrides.VolunteerTasksLocationMissingText != "" {
+		base.VolunteerTasksLocationMissingText = overrides.VolunteerTasksLocationMissingText
+	}
+	if overrides.VolunteerTasksLocationUpdateButton != "" {
+		base.VolunteerTasksLocationUpdateButton = overrides.VolunteerTasksLocationUpdateButton
 	}
 	if overrides.VolunteerTaskItemTemplate != "" {
 		base.VolunteerTaskItemTemplate = overrides.VolunteerTaskItemTemplate
@@ -601,108 +645,119 @@ func defaultMessages() Messages {
 			"Мой профиль",
 			"О Добрике",
 		},
-		CustomerServiceUnavailableText:    "Сервис заказчиков недоступен. Попробуйте позже.",
-		CustomerLookupErrorText:           "Не удалось получить данные заказчика. Попробуйте позже.",
-		CustomerFormIntroText:             "Расскажите о заказчике. Заполните профиль, чтобы волонтёры быстрее откликнулись.",
-		CustomerSummaryTitle:              "Профиль заказчика:",
-		CustomerSummaryTemplate:           "*Кому:* %s\n*История:* %s",
-		CustomerTypePrompt:                "Кто обращается за помощью?",
-		CustomerTypeIndividualButton:      "Частное лицо",
-		CustomerTypeBusinessButton:        "Организация",
-		CustomerTypeIndividualLabel:       "Частное лицо",
-		CustomerTypeBusinessLabel:         "Организация",
-		CustomerNamePrompt:                "Как вас зовут или как называется организация?",
-		CustomerNamePromptIndividual:      "Как вас зовут?",
-		CustomerNamePromptBusiness:        "Как называется ваша организация или фонд?",
-		CustomerNameRetryText:             "Пожалуйста, укажите имя или название.",
-		CustomerNameRetryIndividual:       "Пожалуйста, укажите имя.",
-		CustomerNameRetryBusiness:         "Пожалуйста, укажите название организации.",
-		CustomerAboutPrompt:               "Опишите, какая помощь нужна.",
-		CustomerAboutPromptIndividual:     "Опишите, какая помощь нужна лично вам или близкому.",
-		CustomerAboutPromptBusiness:       "Опишите, какая помощь нужна вашей организации.",
-		CustomerAboutRetryText:            "Пожалуйста, опишите, какая помощь нужна.",
-		CustomerAboutRetryIndividual:      "Пожалуйста, опишите, какая помощь нужна.",
-		CustomerAboutRetryBusiness:        "Пожалуйста, опишите, какая помощь нужна организации.",
-		CustomerCreateSuccessText:         "Спасибо! Профиль заказчика сохранён.",
-		CustomerUpdateSuccessText:         "Профиль заказчика обновлён.",
-		CustomerSaveErrorText:             "Не удалось сохранить профиль. Попробуйте позже.",
-		CustomerManageCreateButton:        "Заполнить профиль",
-		CustomerManageUpdateButton:        "Обновить профиль",
-		CustomerManageDeleteButton:        "Удалить профиль",
-		CustomerManageBackButton:          "⬅️ Назад в меню",
-		CustomerManageTasksButton:         "Мои задачи",
-		CustomerManageCreateTaskButton:    "Создать задачу",
-		CustomerTasksListText:             "Список добрых дел:",
-		CustomerCreateTaskPlaceholderText: "Создание задач появится позже. Следите за обновлениями!",
-		CustomerTasksEmptyText:            "Пока задач нет. Создайте первое доброе дело!",
-		CustomerTaskItemTemplate:          "• *%s*\n%s",
-		CustomerTasksPrevButton:           "⬅️ Назад",
-		CustomerTasksNextButton:           "➡️ Далее",
-		CustomerTasksPageFooter:           "Страница %d из %d",
-		CustomerTaskRewardDescription:     "Награда за выполнение задачи «%s»",
-		VolunteerMenuIntro:                "💚 Выберите, как хотите помочь:",
-		VolunteerMenuOnDemandButton:       "По запросу",
-		VolunteerMenuTasksButton:          "Список дел",
-		VolunteerMenuProfileButton:        "Мой профиль",
-		VolunteerMenuBackButton:           "Назад",
-		VolunteerMenuMainButton:           "Главное меню",
-		VolunteerOnDemandPlaceholder:      "Раздел «По запросу» в разработке. Скоро здесь появятся обращения от людей рядом 💚",
-		VolunteerTasksPlaceholder:         "Список дел появится скоро. Здесь будут доступные добрые дела.",
-		VolunteerTasksUnavailableText:     "Сервис задач недоступен. Попробуйте позже.",
-		VolunteerTasksErrorText:           "Не удалось получить список добрых дел. Попробуйте позже.",
-		VolunteerTasksEmptyText:           "Сейчас нет активных задач. Загляните позже!",
-		VolunteerTaskItemTemplate:         "• *%s*\n%s",
-		VolunteerOnDemandEmptyText:        "У тебя пока нет активных откликов.",
-		VolunteerTasksPrevButton:          "⬅️ Назад",
-		VolunteerTasksNextButton:          "➡️ Далее",
-		VolunteerTasksPageFooter:          "Страница %d из %d",
-		VolunteerTaskRewardNotification:   "Спасибо за доброе дело «%s»! Тебе начислено %d добриков 💚",
-		TaskServiceUnavailableText:        "Сервис задач недоступен. Попробуйте позже.",
-		TaskFetchErrorText:                "Не удалось получить список задач. Попробуйте позже.",
-		TaskCreateNoCustomerText:          "Сначала заполни профиль заказчика, чтобы создавать добрые дела.",
-		TaskCreateNamePrompt:              "Как назовём доброе дело?",
-		TaskCreateNameRetryText:           "Введите название доброго дела, пожалуйста.",
-		TaskCreateDescriptionPrompt:       "Расскажите, что нужно сделать. Это поможет волонтёрам понять задачу.",
-		TaskCreateDescriptionRetryText:    "Добавьте описание, чтобы волонтёры понимали, чем помочь.",
-		TaskCreateSuccessText:             "Доброе дело «%s» создано 💚",
-		TaskCreateErrorText:               "Не удалось создать задачу. Попробуйте позже.",
-		VolunteerTaskDetailTitle:          "*%s*",
-		VolunteerTaskJoinButton:           "Откликнуться",
-		VolunteerTaskLeaveButton:          "Отказаться",
-		VolunteerTaskConfirmButton:        "Я помог(ла)",
-		VolunteerTaskJoinSuccessText:      "Отлично! Ты откликнулся(ась) на доброе дело 💚",
-		VolunteerTaskJoinErrorText:        "Не получилось откликнуться. Попробуй позже.",
-		VolunteerTaskLeaveSuccessText:     "Ты отказался(ась) от участия. Ничего страшного!",
-		VolunteerTaskLeaveErrorText:       "Не удалось отказаться от участия. Попробуй позже.",
-		VolunteerTaskConfirmSuccessText:   "Спасибо! Мы передали, что ты завершил(а) доброе дело.",
-		VolunteerTaskConfirmErrorText:     "Не удалось подтвердить выполнение. Попробуй позже.",
-		VolunteerTaskDetailBackButton:     "⬅️ К списку дел",
-		CustomerTaskDetailTitle:           "*%s*",
-		CustomerTaskApproveButton:         "Подтвердить выполнение",
-		CustomerTaskRejectButton:          "Отклонить",
-		CustomerTaskApproveSuccessText:    "Выполнение задачи подтверждено 💚",
-		CustomerTaskRejectSuccessText:     "Задача помечена как невыполненная.",
-		CustomerTaskDecisionErrorText:     "Не удалось обновить статус задачи. Попробуйте позже.",
-		CustomerDeleteConfirmText:         "Удалить профиль заказчика?",
-		CustomerDeleteConfirmButton:       "Удалить профиль",
-		CustomerDeleteCancelButton:        "Отмена",
-		CustomerDeleteSuccessText:         "Профиль заказчика удалён.",
-		CustomerDeleteErrorText:           "Не удалось удалить профиль. Попробуйте позже.",
-		ProfileTitle:                      "👤 *Мой профиль*",
-		ProfileSkillsTitle:                "Навыки и интересы:",
-		ProfileLevelBalanceTemplate:       "🎖 Уровень: *%s*\n💰 Репутация: *%d* добриков",
-		ProfileHistoryButton:              "📜 История дел",
-		ProfileEditButton:                 "✏️ Редактировать",
-		ProfileSecurityButton:             "🛡 Безопасность",
-		ProfileBackButton:                 "⬅️ Назад в меню",
-		ProfileCoinsButton:                "💰 Добрики",
-		ProfileHistoryText:                "История добрых дел появится совсем скоро 💚",
-		ProfileEditText:                   "Редактирование профиля появится в ближайшем обновлении.",
-		ProfileSecurityTitle:              "🛡 Безопасность встреч офлайн",
-		ProfileSecurityText:               "• Назначайте встречи только в людных местах\n• Делитесь планами с близкими\n• Пользуйтесь кнопкой SOS в экстренных ситуациях\n\nВсе правила и контакты: %s",
-		ProfileSecuritySOSButton:          "🚨 Открыть памятку",
-		ProfileSecuritySOSLink:            "https://dobrika.example/safety",
-		AboutDobrikaText:                  "Добрика — бот добрых дел. Здесь можно помогать другим и получать добрики за сделанное добро.",
+		CustomerServiceUnavailableText:     "Сервис заказчиков недоступен. Попробуйте позже.",
+		CustomerLookupErrorText:            "Не удалось получить данные заказчика. Попробуйте позже.",
+		CustomerFormIntroText:              "Расскажите о заказчике. Заполните профиль, чтобы волонтёры быстрее откликнулись.",
+		CustomerSummaryTitle:               "Профиль заказчика:",
+		CustomerSummaryTemplate:            "*Кому:* %s\n*История:* %s",
+		CustomerTypePrompt:                 "Кто обращается за помощью?",
+		CustomerTypeIndividualButton:       "Частное лицо",
+		CustomerTypeBusinessButton:         "Организация",
+		CustomerTypeIndividualLabel:        "Частное лицо",
+		CustomerTypeBusinessLabel:          "Организация",
+		CustomerNamePrompt:                 "Как вас зовут или как называется организация?",
+		CustomerNamePromptIndividual:       "Как вас зовут?",
+		CustomerNamePromptBusiness:         "Как называется ваша организация или фонд?",
+		CustomerNameRetryText:              "Пожалуйста, укажите имя или название.",
+		CustomerNameRetryIndividual:        "Пожалуйста, укажите имя.",
+		CustomerNameRetryBusiness:          "Пожалуйста, укажите название организации.",
+		CustomerAboutPrompt:                "Опишите, какая помощь нужна.",
+		CustomerAboutPromptIndividual:      "Опишите, какая помощь нужна лично вам или близкому.",
+		CustomerAboutPromptBusiness:        "Опишите, какая помощь нужна вашей организации.",
+		CustomerAboutRetryText:             "Пожалуйста, опишите, какая помощь нужна.",
+		CustomerAboutRetryIndividual:       "Пожалуйста, опишите, какая помощь нужна.",
+		CustomerAboutRetryBusiness:         "Пожалуйста, опишите, какая помощь нужна организации.",
+		CustomerCreateSuccessText:          "Спасибо! Профиль заказчика сохранён.",
+		CustomerUpdateSuccessText:          "Профиль заказчика обновлён.",
+		CustomerSaveErrorText:              "Не удалось сохранить профиль. Попробуйте позже.",
+		CustomerManageCreateButton:         "Заполнить профиль",
+		CustomerManageUpdateButton:         "Обновить профиль",
+		CustomerManageDeleteButton:         "Удалить профиль",
+		CustomerManageBackButton:           "⬅️ Назад в меню",
+		CustomerManageTasksButton:          "Мои задачи",
+		CustomerManageCreateTaskButton:     "Создать задачу",
+		CustomerTasksListText:              "Список добрых дел:",
+		CustomerCreateTaskPlaceholderText:  "Создание задач появится позже. Следите за обновлениями!",
+		CustomerTasksEmptyText:             "Пока задач нет. Создайте первое доброе дело!",
+		CustomerTaskItemTemplate:           "• *%s*\n%s",
+		CustomerTasksPrevButton:            "⬅️ Назад",
+		CustomerTasksNextButton:            "➡️ Далее",
+		CustomerTasksPageFooter:            "Страница %d из %d",
+		CustomerTaskRewardDescription:      "Награда за выполнение задачи «%s»",
+		VolunteerMenuIntro:                 "💚 Выберите, как хотите помочь:",
+		VolunteerMenuOnDemandButton:        "По запросу",
+		VolunteerMenuTasksButton:           "Список дел",
+		VolunteerMenuProfileButton:         "Мой профиль",
+		VolunteerMenuBackButton:            "Назад",
+		VolunteerMenuMainButton:            "Главное меню",
+		VolunteerOnDemandPlaceholder:       "Раздел «По запросу» в разработке. Скоро здесь появятся обращения от людей рядом 💚",
+		VolunteerTasksPlaceholder:          "Список дел появится скоро. Здесь будут доступные добрые дела.",
+		VolunteerTasksUnavailableText:      "Сервис задач недоступен. Попробуйте позже.",
+		VolunteerTasksErrorText:            "Не удалось получить список добрых дел. Попробуйте позже.",
+		VolunteerTasksEmptyText:            "Сейчас нет активных задач. Загляните позже!",
+		VolunteerTasksFilterAllButton:      "📍 Рядом",
+		VolunteerTasksFilterRewardButton:   "💰 Награда",
+		VolunteerTasksFilterTeamButton:     "👥 Команда",
+		VolunteerTasksFilterOnlineButton:   "💻 Онлайн",
+		VolunteerTasksFilterAllLabel:       "все рядом",
+		VolunteerTasksFilterRewardLabel:    "с наградой",
+		VolunteerTasksFilterTeamLabel:      "для команды",
+		VolunteerTasksFilterOnlineLabel:    "онлайн",
+		VolunteerTasksFilterEmptyText:      "По выбранному фильтру ничего не нашлось. Попробуй другой вариант 💚",
+		VolunteerTasksLocationMissingText:  "Чтобы увидеть добрые дела рядом, обнови локацию в профиле 💚",
+		VolunteerTasksLocationUpdateButton: "📍 Обновить локацию",
+		VolunteerTaskItemTemplate:          "• *%s*\n%s",
+		VolunteerOnDemandEmptyText:         "У тебя пока нет активных откликов.",
+		VolunteerTasksPrevButton:           "⬅️ Назад",
+		VolunteerTasksNextButton:           "➡️ Далее",
+		VolunteerTasksPageFooter:           "Страница %d из %d",
+		VolunteerTaskRewardNotification:    "Спасибо за доброе дело «%s»! Тебе начислено %d добриков 💚",
+		TaskServiceUnavailableText:         "Сервис задач недоступен. Попробуйте позже.",
+		TaskFetchErrorText:                 "Не удалось получить список задач. Попробуйте позже.",
+		TaskCreateNoCustomerText:           "Сначала заполни профиль заказчика, чтобы создавать добрые дела.",
+		TaskCreateNamePrompt:               "Как назовём доброе дело?",
+		TaskCreateNameRetryText:            "Введите название доброго дела, пожалуйста.",
+		TaskCreateDescriptionPrompt:        "Расскажите, что нужно сделать. Это поможет волонтёрам понять задачу.",
+		TaskCreateDescriptionRetryText:     "Добавьте описание, чтобы волонтёры понимали, чем помочь.",
+		TaskCreateSuccessText:              "Доброе дело «%s» создано 💚",
+		TaskCreateErrorText:                "Не удалось создать задачу. Попробуйте позже.",
+		VolunteerTaskDetailTitle:           "*%s*",
+		VolunteerTaskJoinButton:            "Откликнуться",
+		VolunteerTaskLeaveButton:           "Отказаться",
+		VolunteerTaskConfirmButton:         "Я помог(ла)",
+		VolunteerTaskJoinSuccessText:       "Отлично! Ты откликнулся(ась) на доброе дело 💚",
+		VolunteerTaskJoinErrorText:         "Не получилось откликнуться. Попробуй позже.",
+		VolunteerTaskLeaveSuccessText:      "Ты отказался(ась) от участия. Ничего страшного!",
+		VolunteerTaskLeaveErrorText:        "Не удалось отказаться от участия. Попробуй позже.",
+		VolunteerTaskConfirmSuccessText:    "Спасибо! Мы передали, что ты завершил(а) доброе дело.",
+		VolunteerTaskConfirmErrorText:      "Не удалось подтвердить выполнение. Попробуй позже.",
+		VolunteerTaskDetailBackButton:      "⬅️ К списку дел",
+		CustomerTaskDetailTitle:            "*%s*",
+		CustomerTaskApproveButton:          "Подтвердить выполнение",
+		CustomerTaskRejectButton:           "Отклонить",
+		CustomerTaskApproveSuccessText:     "Выполнение задачи подтверждено 💚",
+		CustomerTaskRejectSuccessText:      "Задача помечена как невыполненная.",
+		CustomerTaskDecisionErrorText:      "Не удалось обновить статус задачи. Попробуйте позже.",
+		CustomerDeleteConfirmText:          "Удалить профиль заказчика?",
+		CustomerDeleteConfirmButton:        "Удалить профиль",
+		CustomerDeleteCancelButton:         "Отмена",
+		CustomerDeleteSuccessText:          "Профиль заказчика удалён.",
+		CustomerDeleteErrorText:            "Не удалось удалить профиль. Попробуйте позже.",
+		ProfileTitle:                       "👤 *Мой профиль*",
+		ProfileSkillsTitle:                 "Навыки и интересы:",
+		ProfileLevelBalanceTemplate:        "🎖 Уровень: *%s*\n💰 Репутация: *%d* добриков",
+		ProfileHistoryButton:               "📜 История дел",
+		ProfileEditButton:                  "✏️ Редактировать",
+		ProfileSecurityButton:              "🛡 Безопасность",
+		ProfileBackButton:                  "⬅️ Назад в меню",
+		ProfileCoinsButton:                 "💰 Добрики",
+		ProfileHistoryText:                 "История добрых дел появится совсем скоро 💚",
+		ProfileEditText:                    "Редактирование профиля появится в ближайшем обновлении.",
+		ProfileSecurityTitle:               "🛡 Безопасность встреч офлайн",
+		ProfileSecurityText:                "• Назначайте встречи только в людных местах\n• Делитесь планами с близкими\n• Пользуйтесь кнопкой SOS в экстренных ситуациях\n\nВсе правила и контакты: %s",
+		ProfileSecuritySOSButton:           "🚨 Открыть памятку",
+		ProfileSecuritySOSLink:             "https://dobrika.example/safety",
+		AboutDobrikaText:                   "Добрика — бот добрых дел. Здесь можно помогать другим и получать добрики за сделанное добро.",
 		AboutDobrikaButtons: []string{
 			"💚 Как это работает",
 			"🧭 Правила и безопасность",

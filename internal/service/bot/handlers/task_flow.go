@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -27,7 +28,9 @@ const (
 )
 
 const (
-	taskListPageSize = 5
+	taskListPageSize   = 5
+	searchQueryTypeGeo = "SGeoTasks"
+	searchDefaultQuery = "geo"
 )
 
 type volunteerTasksViewMode string
@@ -37,6 +40,27 @@ const (
 	volunteerTasksViewModeAll      volunteerTasksViewMode = "all"
 	volunteerTasksViewModeOnDemand volunteerTasksViewMode = "on_demand"
 )
+
+type volunteerTasksFilter string
+
+const (
+	volunteerTasksFilterAll    volunteerTasksFilter = "all"
+	volunteerTasksFilterReward volunteerTasksFilter = "reward"
+	volunteerTasksFilterTeam   volunteerTasksFilter = "team"
+	volunteerTasksFilterOnline volunteerTasksFilter = "online"
+)
+
+var errVolunteerLocationMissing = errors.New("volunteer location missing")
+
+type volunteerTaskDisplayEntry struct {
+	task   *taskpb.Task
+	status string
+	joined bool
+	reward bool
+	team   bool
+	online bool
+	order  int
+}
 
 type taskCreationSession struct {
 	UserID      int64
@@ -430,21 +454,25 @@ func (h *MessageHandler) buildCustomerTasksView(ctx context.Context, customerID 
 	return builder.String(), keyboard
 }
 
-func (h *MessageHandler) showVolunteerTasksList(ctx context.Context, chatID, userID int64, mode volunteerTasksViewMode, intro string, page int) {
-	text, keyboard := h.buildVolunteerTasksView(ctx, userID, mode, intro, page)
+func (h *MessageHandler) showVolunteerTasksList(ctx context.Context, chatID, userID int64, mode volunteerTasksViewMode, filter volunteerTasksFilter, intro string, page int) {
+	text, keyboard := h.buildVolunteerTasksView(ctx, userID, mode, filter, intro, page)
 	h.renderMenu(ctx, chatID, userID, text, keyboard)
 }
 
-func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int64, mode volunteerTasksViewMode, intro string, page int) (string, *maxbot.Keyboard) {
+func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int64, mode volunteerTasksViewMode, filter volunteerTasksFilter, intro string, page int) (string, *maxbot.Keyboard) {
+	switch mode {
+	case volunteerTasksViewModeOnDemand:
+		return h.buildVolunteerOnDemandView(ctx, userID, intro, page)
+	default:
+		return h.buildVolunteerGeoTasksView(ctx, userID, filter, intro, page)
+	}
+}
+
+func (h *MessageHandler) buildVolunteerOnDemandView(ctx context.Context, userID int64, intro string, page int) (string, *maxbot.Keyboard) {
 	var builder strings.Builder
 	displayIntro := strings.TrimSpace(intro)
 	if displayIntro == "" {
-		switch mode {
-		case volunteerTasksViewModeAll:
-			displayIntro = strings.TrimSpace(h.messages.VolunteerTasksPlaceholder)
-		case volunteerTasksViewModeOnDemand:
-			displayIntro = strings.TrimSpace(h.messages.VolunteerOnDemandPlaceholder)
-		}
+		displayIntro = strings.TrimSpace(h.messages.VolunteerOnDemandPlaceholder)
 	}
 	if displayIntro != "" {
 		builder.WriteString(displayIntro)
@@ -504,11 +532,7 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 	}
 
 	if len(tasks) == 0 {
-		if mode == volunteerTasksViewModeOnDemand {
-			builder.WriteString(h.volunteerOnDemandEmptyText())
-		} else {
-			builder.WriteString(h.volunteerTasksEmptyText())
-		}
+		builder.WriteString(h.volunteerOnDemandEmptyText())
 		return builder.String(), h.volunteerBackKeyboard()
 	}
 
@@ -539,14 +563,6 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 	baseIndex := int(offset)
 	sectionIndex := baseIndex + 1
 
-	if mode == volunteerTasksViewModeOnDemand {
-		if len(joined) == 0 {
-			builder.WriteString(h.volunteerOnDemandEmptyText())
-			return builder.String(), h.volunteerBackKeyboard()
-		}
-		available = nil
-	}
-
 	if len(joined) > 0 {
 		builder.WriteString(fmt.Sprintf("🌟 *Мои отклики:* %d\n", len(joined)))
 		for _, entry := range joined {
@@ -572,45 +588,43 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 		}
 	}
 
-	if mode != "" {
-		if total > taskListPageSize {
-			footer := strings.TrimSpace(h.messages.VolunteerTasksPageFooter)
-			if footer == "" {
-				footer = "Страница %d из %d"
-			}
-			totalPages := (total + taskListPageSize - 1) / taskListPageSize
-			if totalPages < 1 {
-				totalPages = 1
-			}
-			builder.WriteString("\n")
-			builder.WriteString(fmt.Sprintf(footer, page+1, totalPages))
-			builder.WriteString("\n")
+	if total > taskListPageSize {
+		footer := strings.TrimSpace(h.messages.VolunteerTasksPageFooter)
+		if footer == "" {
+			footer = "Страница %d из %d"
 		}
-
-		hasPrev := page > 0
-		hasNext := false
-		if total > 0 {
-			hasNext = (page+1)*taskListPageSize < total
-		} else if len(tasks) == taskListPageSize {
-			hasNext = true
+		totalPages := (total + taskListPageSize - 1) / taskListPageSize
+		if totalPages < 1 {
+			totalPages = 1
 		}
+		builder.WriteString("\n")
+		builder.WriteString(fmt.Sprintf(footer, page+1, totalPages))
+		builder.WriteString("\n")
+	}
 
-		if len(tasks) > 0 && (hasPrev || hasNext) {
-			prevLabel := strings.TrimSpace(h.messages.VolunteerTasksPrevButton)
-			if prevLabel == "" {
-				prevLabel = "⬅️ Назад"
-			}
-			nextLabel := strings.TrimSpace(h.messages.VolunteerTasksNextButton)
-			if nextLabel == "" {
-				nextLabel = "➡️ Далее"
-			}
-			row := keyboard.AddRow()
-			if hasPrev {
-				row.AddCallback(prevLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%d", callbackVolunteerTasksPage, mode, page-1))
-			}
-			if hasNext {
-				row.AddCallback(nextLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%d", callbackVolunteerTasksPage, mode, page+1))
-			}
+	hasPrev := page > 0
+	hasNext := false
+	if total > 0 {
+		hasNext = (page+1)*taskListPageSize < total
+	} else if len(tasks) == taskListPageSize {
+		hasNext = true
+	}
+
+	if len(tasks) > 0 && (hasPrev || hasNext) {
+		prevLabel := strings.TrimSpace(h.messages.VolunteerTasksPrevButton)
+		if prevLabel == "" {
+			prevLabel = "⬅️ Назад"
+		}
+		nextLabel := strings.TrimSpace(h.messages.VolunteerTasksNextButton)
+		if nextLabel == "" {
+			nextLabel = "➡️ Далее"
+		}
+		row := keyboard.AddRow()
+		if hasPrev {
+			row.AddCallback(prevLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%s:%d", callbackVolunteerTasksPage, volunteerTasksViewModeOnDemand, volunteerTasksFilterAll, page-1))
+		}
+		if hasNext {
+			row.AddCallback(nextLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%s:%d", callbackVolunteerTasksPage, volunteerTasksViewModeOnDemand, volunteerTasksFilterAll, page+1))
 		}
 	}
 
@@ -618,6 +632,421 @@ func (h *MessageHandler) buildVolunteerTasksView(ctx context.Context, userID int
 		AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
 
 	return builder.String(), keyboard
+}
+
+func (h *MessageHandler) buildVolunteerGeoTasksView(ctx context.Context, userID int64, filter volunteerTasksFilter, intro string, page int) (string, *maxbot.Keyboard) {
+	var builder strings.Builder
+	displayIntro := strings.TrimSpace(intro)
+	if displayIntro == "" {
+		displayIntro = strings.TrimSpace(h.messages.VolunteerTasksPlaceholder)
+	}
+	if displayIntro != "" {
+		builder.WriteString(displayIntro)
+		builder.WriteString("\n\n")
+	}
+
+	if h.task == nil {
+		builder.WriteString(h.volunteerTasksUnavailableText())
+		return builder.String(), h.volunteerBackKeyboard()
+	}
+
+	tasks, err := h.fetchGeoTasks(ctx, userID)
+	if err != nil {
+		if errors.Is(err, errVolunteerLocationMissing) {
+			builder.WriteString(h.volunteerLocationMissingText())
+			keyboard := h.api.Messages.NewKeyboardBuilder()
+			keyboard.AddRow().
+				AddCallback(h.volunteerLocationUpdateButton(), schemes.POSITIVE, callbackMainMenuProfile)
+			keyboard.AddRow().
+				AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
+			return builder.String(), keyboard
+		}
+		builder.WriteString(h.volunteerTasksErrorText())
+		return builder.String(), h.volunteerBackKeyboard()
+	}
+
+	filtered := h.filterVolunteerTasks(tasks, userID, filter)
+	if len(filtered) == 0 {
+		builder.WriteString(h.volunteerFilterEmptyText())
+		keyboard := h.api.Messages.NewKeyboardBuilder()
+		h.appendVolunteerFilterRows(keyboard, volunteerTasksViewModeAll, filter)
+		keyboard.AddRow().
+			AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
+		return builder.String(), keyboard
+	}
+
+	joinedCount := 0
+	for _, entry := range filtered {
+		if entry.joined {
+			joinedCount++
+		}
+	}
+
+	total := len(filtered)
+	totalPages := (total + taskListPageSize - 1) / taskListPageSize
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	if page < 0 {
+		page = 0
+	}
+	if page >= totalPages {
+		page = totalPages - 1
+	}
+
+	start := page * taskListPageSize
+	end := start + taskListPageSize
+	if end > total {
+		end = total
+	}
+
+	builder.WriteString(fmt.Sprintf("Найдено дел рядом: %d\n", total))
+	if filter != volunteerTasksFilterAll {
+		builder.WriteString(fmt.Sprintf("Фильтр: %s\n", h.currentFilterLabel(filter)))
+	}
+	if joinedCount > 0 {
+		builder.WriteString(fmt.Sprintf("🌟 Твои отклики: %d\n", joinedCount))
+	}
+	builder.WriteString("\nВыбери дело ниже:\n")
+
+	keyboard := h.api.Messages.NewKeyboardBuilder()
+	h.appendVolunteerFilterRows(keyboard, volunteerTasksViewModeAll, filter)
+
+	sectionIndex := start + 1
+	for _, entry := range filtered[start:end] {
+		name := safeTaskName(entry.task.GetName())
+		badge := volunteerStatusBadge(entry.status)
+		extra := h.taskFilterBadge(entry)
+		buttonLabel := truncateLabel(fmt.Sprintf("%d. %s %s%s", sectionIndex, name, badge, extra), 45)
+		keyboard.AddRow().
+			AddCallback(buttonLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskView, entry.task.GetId()))
+		sectionIndex++
+	}
+
+	if totalPages > 1 {
+		builder.WriteString("\n")
+		footerTemplate := strings.TrimSpace(h.messages.VolunteerTasksPageFooter)
+		if footerTemplate == "" {
+			footerTemplate = "Страница %d из %d"
+		}
+		builder.WriteString(fmt.Sprintf(footerTemplate, page+1, totalPages))
+		builder.WriteString("\n")
+
+		row := keyboard.AddRow()
+		prevLabel := strings.TrimSpace(h.messages.VolunteerTasksPrevButton)
+		if prevLabel == "" {
+			prevLabel = "⬅️ Назад"
+		}
+		nextLabel := strings.TrimSpace(h.messages.VolunteerTasksNextButton)
+		if nextLabel == "" {
+			nextLabel = "➡️ Далее"
+		}
+		if page > 0 {
+			row.AddCallback(prevLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%s:%d", callbackVolunteerTasksPage, volunteerTasksViewModeAll, filter, page-1))
+		}
+		if page < totalPages-1 {
+			row.AddCallback(nextLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s:%s:%d", callbackVolunteerTasksPage, volunteerTasksViewModeAll, filter, page+1))
+		}
+	}
+
+	keyboard.AddRow().
+		AddCallback(h.messages.VolunteerMenuBackButton, schemes.DEFAULT, callbackVolunteerBack)
+
+	return builder.String(), keyboard
+}
+
+func (h *MessageHandler) fetchGeoTasks(ctx context.Context, userID int64) ([]*taskpb.Task, error) {
+	if h.user == nil {
+		h.logger.Error("user service client is not configured for geo tasks", zap.Int64("user_id", userID))
+		return nil, errVolunteerLocationMissing
+	}
+
+	maxID := fmt.Sprintf("%d", userID)
+	userResp, err := h.user.GetUserByMaxID(ctx, &userpb.GetUserByMaxIDRequest{MaxId: maxID})
+	if err != nil {
+		h.logger.Error("failed to fetch user for geo tasks", zap.Error(err), zap.Int64("user_id", userID))
+		return nil, err
+	}
+	if svcErr := userResp.GetError(); svcErr != nil {
+		h.logger.Warn("user service returned error for geo tasks", zap.String("message", svcErr.GetMessage()), zap.Int64("user_id", userID))
+		return nil, errVolunteerLocationMissing
+	}
+
+	user := userResp.GetUser()
+	if user == nil {
+		return nil, errVolunteerLocationMissing
+	}
+
+	geoData, ok := normalizeGeoCoordinates(user.GetGeolocation())
+	if !ok {
+		return nil, errVolunteerLocationMissing
+	}
+
+	req := &taskpb.SearchTasksRequest{
+		Query:     searchDefaultQuery,
+		QueryType: searchQueryTypeGeo,
+		GeoData:   geoData,
+	}
+
+	resp, err := h.task.SearchTasks(ctx, req)
+	if err != nil {
+		h.logger.Error("failed to search geo tasks", zap.Error(err), zap.Int64("user_id", userID))
+		return nil, err
+	}
+
+	if resp.GetError() != nil {
+		h.logger.Warn("search tasks returned error", zap.String("message", resp.GetError().GetMessage()))
+		return nil, fmt.Errorf("search tasks error: %s", resp.GetError().GetMessage())
+	}
+
+	return resp.GetTasks(), nil
+}
+
+func (h *MessageHandler) filterVolunteerTasks(tasks []*taskpb.Task, userID int64, filter volunteerTasksFilter) []volunteerTaskDisplayEntry {
+	if len(tasks) == 0 {
+		return nil
+	}
+
+	userIDStr := fmt.Sprintf("%d", userID)
+	result := make([]volunteerTaskDisplayEntry, 0, len(tasks))
+
+	for idx, task := range tasks {
+		if task == nil {
+			continue
+		}
+
+		assignments := parseTaskAssignments(task)
+		status := assignmentStatusForUser(assignments, userIDStr)
+		entry := volunteerTaskDisplayEntry{
+			task:   task,
+			status: status,
+			joined: status != "" && !isStatusRejected(status),
+			reward: task.GetCost() > 0,
+			team:   task.GetMembersCount() > 1,
+			online: isOnlineTask(task),
+			order:  idx,
+		}
+
+		if passesVolunteerFilter(entry, filter) {
+			result = append(result, entry)
+		}
+	}
+
+	sort.SliceStable(result, func(i, j int) bool {
+		if result[i].joined != result[j].joined {
+			return result[i].joined
+		}
+		return result[i].order < result[j].order
+	})
+
+	return result
+}
+
+func passesVolunteerFilter(entry volunteerTaskDisplayEntry, filter volunteerTasksFilter) bool {
+	switch filter {
+	case volunteerTasksFilterReward:
+		return entry.reward
+	case volunteerTasksFilterTeam:
+		return entry.team
+	case volunteerTasksFilterOnline:
+		return entry.online
+	default:
+		return true
+	}
+}
+
+func (h *MessageHandler) appendVolunteerFilterRows(keyboard *maxbot.Keyboard, mode volunteerTasksViewMode, current volunteerTasksFilter) {
+	if keyboard == nil {
+		return
+	}
+
+	filters := []volunteerTasksFilter{
+		volunteerTasksFilterAll,
+		volunteerTasksFilterReward,
+		volunteerTasksFilterTeam,
+		volunteerTasksFilterOnline,
+	}
+
+	var row *maxbot.KeyboardRow
+	for idx, f := range filters {
+		if idx%2 == 0 {
+			row = keyboard.AddRow()
+		}
+		if row == nil {
+			continue
+		}
+		label := h.filterButtonLabel(f, current)
+		scheme := schemes.DEFAULT
+		if f == current {
+			scheme = schemes.POSITIVE
+		}
+		row.AddCallback(label, scheme, fmt.Sprintf("%s:%s:%s", callbackVolunteerTasksFilter, mode, f))
+	}
+}
+
+func (h *MessageHandler) filterButtonLabel(filter, current volunteerTasksFilter) string {
+	label := strings.TrimSpace(h.filterBaseLabel(filter))
+	if label == "" {
+		switch filter {
+		case volunteerTasksFilterReward:
+			label = "💰 Награда"
+		case volunteerTasksFilterTeam:
+			label = "👥 Команда"
+		case volunteerTasksFilterOnline:
+			label = "💻 Онлайн"
+		default:
+			label = "📍 Рядом"
+		}
+	}
+	if filter == current {
+		if strings.HasPrefix(label, "✅") {
+			return label
+		}
+		return "✅ " + label
+	}
+	return label
+}
+
+func (h *MessageHandler) filterBaseLabel(filter volunteerTasksFilter) string {
+	switch filter {
+	case volunteerTasksFilterReward:
+		return h.messages.VolunteerTasksFilterRewardButton
+	case volunteerTasksFilterTeam:
+		return h.messages.VolunteerTasksFilterTeamButton
+	case volunteerTasksFilterOnline:
+		return h.messages.VolunteerTasksFilterOnlineButton
+	default:
+		return h.messages.VolunteerTasksFilterAllButton
+	}
+}
+
+func (h *MessageHandler) currentFilterLabel(filter volunteerTasksFilter) string {
+	switch filter {
+	case volunteerTasksFilterReward:
+		if text := strings.TrimSpace(h.messages.VolunteerTasksFilterRewardLabel); text != "" {
+			return text
+		}
+		return "с наградой"
+	case volunteerTasksFilterTeam:
+		if text := strings.TrimSpace(h.messages.VolunteerTasksFilterTeamLabel); text != "" {
+			return text
+		}
+		return "для команды"
+	case volunteerTasksFilterOnline:
+		if text := strings.TrimSpace(h.messages.VolunteerTasksFilterOnlineLabel); text != "" {
+			return text
+		}
+		return "онлайн"
+	default:
+		if text := strings.TrimSpace(h.messages.VolunteerTasksFilterAllLabel); text != "" {
+			return text
+		}
+		return "все рядом"
+	}
+}
+
+func (h *MessageHandler) taskFilterBadge(entry volunteerTaskDisplayEntry) string {
+	var parts []string
+	if entry.reward {
+		parts = append(parts, "💰")
+	}
+	if entry.team {
+		parts = append(parts, "👥")
+	}
+	if entry.online {
+		parts = append(parts, "💻")
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return " " + strings.Join(parts, "")
+}
+
+func (h *MessageHandler) volunteerFilterEmptyText() string {
+	if text := strings.TrimSpace(h.messages.VolunteerTasksFilterEmptyText); text != "" {
+		return text
+	}
+	return "По выбранному фильтру ничего не нашлось. Попробуй другой вариант 💚"
+}
+
+func (h *MessageHandler) volunteerLocationMissingText() string {
+	if text := strings.TrimSpace(h.messages.VolunteerTasksLocationMissingText); text != "" {
+		return text
+	}
+	return "Чтобы увидеть добрые дела рядом, обнови свою локацию в профиле 💚"
+}
+
+func (h *MessageHandler) volunteerLocationUpdateButton() string {
+	if text := strings.TrimSpace(h.messages.VolunteerTasksLocationUpdateButton); text != "" {
+		return text
+	}
+	return "📍 Обновить локацию"
+}
+
+func parseVolunteerTasksFilter(value string) volunteerTasksFilter {
+	switch volunteerTasksFilter(strings.TrimSpace(value)) {
+	case volunteerTasksFilterReward:
+		return volunteerTasksFilterReward
+	case volunteerTasksFilterTeam:
+		return volunteerTasksFilterTeam
+	case volunteerTasksFilterOnline:
+		return volunteerTasksFilterOnline
+	default:
+		return volunteerTasksFilterAll
+	}
+}
+
+func normalizeGeoCoordinates(raw string) (string, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", false
+	}
+
+	parts := strings.Split(raw, ",")
+	if len(parts) != 2 {
+		return "", false
+	}
+
+	lat, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+	if err != nil || lat < -90 || lat > 90 {
+		return "", false
+	}
+	lon, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+	if err != nil || lon < -180 || lon > 180 {
+		return "", false
+	}
+
+	return fmt.Sprintf("%.6f,%.6f", lat, lon), true
+}
+
+func isOnlineTask(task *taskpb.Task) bool {
+	if task == nil {
+		return false
+	}
+
+	for _, meta := range task.GetMeta() {
+		if meta == nil {
+			continue
+		}
+		key := strings.ToLower(strings.TrimSpace(meta.GetKey()))
+		value := strings.ToLower(strings.TrimSpace(meta.GetValue()))
+
+		switch key {
+		case "task_type", "type":
+			switch value {
+			case "tt_onlinetask", "online", "remote":
+				return true
+			case "tt_offlinetask", "offline":
+				return false
+			}
+		case "online":
+			if value == "true" || value == "1" || value == "yes" {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func (h *MessageHandler) taskCreateNamePromptText() string {
@@ -798,7 +1227,7 @@ func (h *MessageHandler) handleVolunteerTasksPage(ctx context.Context, callbackQ
 	}
 
 	parts := strings.Split(payload, ":")
-	if len(parts) != 2 {
+	if len(parts) < 2 {
 		h.logger.Debug("invalid volunteer tasks page payload", zap.String("payload", payload))
 		return
 	}
@@ -810,7 +1239,13 @@ func (h *MessageHandler) handleVolunteerTasksPage(ctx context.Context, callbackQ
 		mode = volunteerTasksViewModeAll
 	}
 
-	page, err := strconv.Atoi(parts[1])
+	filter := volunteerTasksFilterAll
+	pagePart := parts[len(parts)-1]
+	if len(parts) >= 3 {
+		filter = parseVolunteerTasksFilter(parts[1])
+	}
+
+	page, err := strconv.Atoi(pagePart)
 	if err != nil {
 		h.logger.Warn("failed to parse volunteer tasks page", zap.Error(err), zap.String("payload", payload))
 		page = 0
@@ -822,7 +1257,35 @@ func (h *MessageHandler) handleVolunteerTasksPage(ctx context.Context, callbackQ
 	chatID := callbackQuery.Message.Recipient.ChatId
 	userID := callbackQuery.Callback.User.UserId
 
-	h.showVolunteerTasksList(ctx, chatID, userID, mode, "", page)
+	h.showVolunteerTasksList(ctx, chatID, userID, mode, filter, "", page)
+}
+
+func (h *MessageHandler) handleVolunteerTasksFilter(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, payload string) {
+	h.answerCallback(ctx, callbackQuery.Callback.CallbackID)
+
+	if callbackQuery.Message == nil {
+		return
+	}
+
+	parts := strings.Split(payload, ":")
+	if len(parts) != 2 {
+		h.logger.Debug("invalid volunteer tasks filter payload", zap.String("payload", payload))
+		return
+	}
+
+	mode := volunteerTasksViewMode(strings.TrimSpace(parts[0]))
+	switch mode {
+	case volunteerTasksViewModeAll, volunteerTasksViewModeOnDemand:
+	default:
+		mode = volunteerTasksViewModeAll
+	}
+
+	filter := parseVolunteerTasksFilter(parts[1])
+
+	chatID := callbackQuery.Message.Recipient.ChatId
+	userID := callbackQuery.Callback.User.UserId
+
+	h.showVolunteerTasksList(ctx, chatID, userID, mode, filter, "", 0)
 }
 
 func (h *MessageHandler) handleVolunteerTaskView(ctx context.Context, callbackQuery *schemes.MessageCallbackUpdate, taskID string) {
@@ -846,7 +1309,7 @@ func (h *MessageHandler) handleVolunteerTaskJoin(ctx context.Context, callbackQu
 	}
 
 	if h.task == nil {
-		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, volunteerTasksViewModeNone, h.volunteerTasksUnavailableText(), 0)
+		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, volunteerTasksViewModeNone, volunteerTasksFilterAll, h.volunteerTasksUnavailableText(), 0)
 		return
 	}
 
@@ -870,7 +1333,7 @@ func (h *MessageHandler) handleVolunteerTaskLeave(ctx context.Context, callbackQ
 	}
 
 	if h.task == nil {
-		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, volunteerTasksViewModeNone, h.volunteerTasksUnavailableText(), 0)
+		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, volunteerTasksViewModeNone, volunteerTasksFilterAll, h.volunteerTasksUnavailableText(), 0)
 		return
 	}
 
@@ -894,7 +1357,7 @@ func (h *MessageHandler) handleVolunteerTaskConfirm(ctx context.Context, callbac
 	}
 
 	if h.task == nil {
-		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, volunteerTasksViewModeNone, h.volunteerTasksUnavailableText(), 0)
+		h.showVolunteerTasksList(ctx, callbackQuery.Message.Recipient.ChatId, callbackQuery.Callback.User.UserId, volunteerTasksViewModeNone, volunteerTasksFilterAll, h.volunteerTasksUnavailableText(), 0)
 		return
 	}
 
@@ -912,14 +1375,14 @@ func (h *MessageHandler) handleVolunteerTaskConfirm(ctx context.Context, callbac
 
 func (h *MessageHandler) showVolunteerTaskDetail(ctx context.Context, chatID, userID int64, taskID string, intro ...string) {
 	if h.task == nil {
-		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeNone, h.volunteerTasksUnavailableText(), 0)
+		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeNone, volunteerTasksFilterAll, h.volunteerTasksUnavailableText(), 0)
 		return
 	}
 
 	task, err := h.getTaskByID(ctx, taskID)
 	if err != nil || task == nil {
 		h.logger.Error("failed to fetch task detail", zap.Error(err), zap.String("task_id", taskID))
-		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeNone, h.volunteerTasksErrorText(), 0)
+		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeNone, volunteerTasksFilterAll, h.volunteerTasksErrorText(), 0)
 		return
 	}
 

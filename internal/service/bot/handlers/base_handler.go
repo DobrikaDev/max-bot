@@ -443,6 +443,9 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 	userID := callbackQuery.Callback.User.UserId
 
 	switch {
+	case strings.HasPrefix(payload, callbackVolunteerTasksFilter+":"):
+		h.handleVolunteerTasksFilter(ctx, callbackQuery, strings.TrimPrefix(payload, callbackVolunteerTasksFilter+":"))
+		return true
 	case strings.HasPrefix(payload, callbackVolunteerTasksPage+":"):
 		h.handleVolunteerTasksPage(ctx, callbackQuery, strings.TrimPrefix(payload, callbackVolunteerTasksPage+":"))
 		return true
@@ -483,9 +486,9 @@ func (h *MessageHandler) handleMainMenuCallback(ctx context.Context, callbackQue
 	case callbackMainMenuAbout:
 		h.showAboutDobrikaMenu(ctx, chatID, userID)
 	case callbackVolunteerOnDemand:
-		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeOnDemand, "", 0)
+		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeOnDemand, volunteerTasksFilterAll, "", 0)
 	case callbackVolunteerTasks:
-		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeAll, "", 0)
+		h.showVolunteerTasksList(ctx, chatID, userID, volunteerTasksViewModeAll, volunteerTasksFilterAll, "", 0)
 	case callbackVolunteerBack:
 		h.showVolunteerMenu(ctx, chatID, userID)
 	case callbackProfileCoins:

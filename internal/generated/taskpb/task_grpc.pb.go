@@ -29,6 +29,7 @@ const (
 	TaskService_UserConfirmTask_FullMethodName = "/task.TaskService/UserConfirmTask"
 	TaskService_ApproveTask_FullMethodName     = "/task.TaskService/ApproveTask"
 	TaskService_RejectTask_FullMethodName      = "/task.TaskService/RejectTask"
+	TaskService_SearchTasks_FullMethodName     = "/task.TaskService/SearchTasks"
 )
 
 // TaskServiceClient is the client API for TaskService service.
@@ -45,6 +46,7 @@ type TaskServiceClient interface {
 	UserConfirmTask(ctx context.Context, in *UserConfirmTaskRequest, opts ...grpc.CallOption) (*UserConfirmTaskResponse, error)
 	ApproveTask(ctx context.Context, in *ApproveTaskRequest, opts ...grpc.CallOption) (*ApproveTaskResponse, error)
 	RejectTask(ctx context.Context, in *RejectTaskRequest, opts ...grpc.CallOption) (*RejectTaskResponse, error)
+	SearchTasks(ctx context.Context, in *SearchTasksRequest, opts ...grpc.CallOption) (*SearchTasksResponse, error)
 }
 
 type taskServiceClient struct {
@@ -155,6 +157,16 @@ func (c *taskServiceClient) RejectTask(ctx context.Context, in *RejectTaskReques
 	return out, nil
 }
 
+func (c *taskServiceClient) SearchTasks(ctx context.Context, in *SearchTasksRequest, opts ...grpc.CallOption) (*SearchTasksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchTasksResponse)
+	err := c.cc.Invoke(ctx, TaskService_SearchTasks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TaskServiceServer is the server API for TaskService service.
 // All implementations must embed UnimplementedTaskServiceServer
 // for forward compatibility.
@@ -169,6 +181,7 @@ type TaskServiceServer interface {
 	UserConfirmTask(context.Context, *UserConfirmTaskRequest) (*UserConfirmTaskResponse, error)
 	ApproveTask(context.Context, *ApproveTaskRequest) (*ApproveTaskResponse, error)
 	RejectTask(context.Context, *RejectTaskRequest) (*RejectTaskResponse, error)
+	SearchTasks(context.Context, *SearchTasksRequest) (*SearchTasksResponse, error)
 	mustEmbedUnimplementedTaskServiceServer()
 }
 
@@ -208,6 +221,9 @@ func (UnimplementedTaskServiceServer) ApproveTask(context.Context, *ApproveTaskR
 }
 func (UnimplementedTaskServiceServer) RejectTask(context.Context, *RejectTaskRequest) (*RejectTaskResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RejectTask not implemented")
+}
+func (UnimplementedTaskServiceServer) SearchTasks(context.Context, *SearchTasksRequest) (*SearchTasksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchTasks not implemented")
 }
 func (UnimplementedTaskServiceServer) mustEmbedUnimplementedTaskServiceServer() {}
 func (UnimplementedTaskServiceServer) testEmbeddedByValue()                     {}
@@ -410,6 +426,24 @@ func _TaskService_RejectTask_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TaskService_SearchTasks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchTasksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TaskServiceServer).SearchTasks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TaskService_SearchTasks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TaskServiceServer).SearchTasks(ctx, req.(*SearchTasksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TaskService_ServiceDesc is the grpc.ServiceDesc for TaskService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -456,6 +490,10 @@ var TaskService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RejectTask",
 			Handler:    _TaskService_RejectTask_Handler,
+		},
+		{
+			MethodName: "SearchTasks",
+			Handler:    _TaskService_SearchTasks_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

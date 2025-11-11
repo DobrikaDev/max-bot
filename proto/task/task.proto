@@ -16,6 +16,7 @@ service TaskService {
     rpc UserConfirmTask(UserConfirmTaskRequest) returns (UserConfirmTaskResponse);
     rpc ApproveTask(ApproveTaskRequest) returns (ApproveTaskResponse);
     rpc RejectTask(RejectTaskRequest) returns (RejectTaskResponse);
+    rpc SearchTasks(SearchTasksRequest) returns (SearchTasksResponse);
 }
 
 message UserJoinTaskRequest {
@@ -100,6 +101,18 @@ message GetTasksResponse {
     repeated Task Tasks = 1;
     int32 total = 2;
     Error error = 3;
+}
+
+message SearchTasksRequest {
+    string query = 1;
+    string query_type = 2;
+    string geo_data = 3;
+    repeated string tags = 4;
+}
+
+message SearchTasksResponse {
+    repeated Task Tasks = 1;
+    Error error = 2;
 }
 
 message GetTaskByIDRequest {
