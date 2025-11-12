@@ -1679,6 +1679,13 @@ func (h *MessageHandler) volunteerTasksListItemVolunteers(count int32) string {
 	return fmt.Sprintf(template, count)
 }
 
+func (h *MessageHandler) volunteerTaskAssignmentsEmptyText() string {
+	if text := strings.TrimSpace(h.messages.VolunteerTaskAssignmentsEmptyText); text != "" {
+		return text
+	}
+	return "Пока никто не откликнулся. Будь первым волонтёром 💚"
+}
+
 func (s *taskCreationSession) geoData() string {
 	if s == nil {
 		return ""
@@ -2044,10 +2051,12 @@ func (h *MessageHandler) showVolunteerTaskDetail(ctx context.Context, chatID, us
 	builder.WriteString("\n\n")
 
 	assignments := parseTaskAssignments(task)
+	userIDStr := fmt.Sprintf("%d", userID)
+	status := assignmentStatusForUser(assignments, userIDStr)
 	keyboard := h.api.Messages.NewKeyboardBuilder()
 
 	if len(assignments) == 0 {
-		builder.WriteString(h.customerTaskAssignmentsEmptyText())
+		builder.WriteString(h.volunteerTaskAssignmentsEmptyText())
 		builder.WriteString("\n")
 	} else {
 		builder.WriteString("🧑‍🤝‍🧑 *Откликнувшиеся:*\n")
@@ -2070,19 +2079,42 @@ func (h *MessageHandler) showVolunteerTaskDetail(ctx context.Context, chatID, us
 		builder.WriteString("\n")
 	}
 
-	createLabel := h.messages.CustomerManageCreateTaskButton
-	if strings.TrimSpace(createLabel) == "" {
-		createLabel = "Создать задачу"
+	joinLabel := h.messages.VolunteerTaskJoinButton
+	if strings.TrimSpace(joinLabel) == "" {
+		joinLabel = "Откликнуться"
 	}
-	backLabel := h.messages.CustomerManageBackButton
+	leaveLabel := h.messages.VolunteerTaskLeaveButton
+	if strings.TrimSpace(leaveLabel) == "" {
+		leaveLabel = "Отказаться"
+	}
+	confirmLabel := h.messages.VolunteerTaskConfirmButton
+	if strings.TrimSpace(confirmLabel) == "" {
+		confirmLabel = "Я помог(ла)"
+	}
+	backLabel := h.messages.VolunteerTaskDetailBackButton
 	if strings.TrimSpace(backLabel) == "" {
-		backLabel = "⬅️ Назад"
+		backLabel = "⬅️ К списку"
+	}
+
+	if allowVolunteerJoin(status) {
+		keyboard.AddRow().
+			AddCallback(joinLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s", callbackVolunteerTaskJoin, taskID))
+	}
+
+	if allowVolunteerLeave(status) {
+		keyboard.AddRow().
+			AddCallback(leaveLabel, schemes.DEFAULT, fmt.Sprintf("%s:%s", callbackVolunteerTaskLeave, taskID))
+	}
+
+	if allowVolunteerConfirm(status) {
+		keyboard.AddRow().
+			AddCallback(confirmLabel, schemes.POSITIVE, fmt.Sprintf("%s:%s", callbackVolunteerTaskConfirm, taskID))
 	}
 
 	keyboard.AddRow().
-		AddCallback(createLabel, schemes.POSITIVE, callbackCustomerManageCreateTask)
+		AddCallback(backLabel, schemes.DEFAULT, callbackVolunteerTasks)
 	keyboard.AddRow().
-		AddCallback(backLabel, schemes.DEFAULT, callbackCustomerManageBack)
+		AddCallback(h.messages.VolunteerMenuMainButton, schemes.DEFAULT, callbackVolunteerBack)
 
 	h.renderMenu(ctx, chatID, userID, builder.String(), keyboard)
 }
