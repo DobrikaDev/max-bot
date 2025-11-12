@@ -863,7 +863,7 @@ func defaultMessages() Messages {
 		VolunteerTasksFilterRewardLabel:      "с наградой",
 		VolunteerTasksFilterTeamLabel:        "для команды",
 		VolunteerTasksFilterOnlineLabel:      "онлайн",
-		VolunteerTasksFilterEmptyText:        "По выбранному фильтру ничего не нашлось. Попробуй другой вариант 💚",
+		VolunteerTasksFilterEmptyText:        "По фильтру «%s» пока ничего нет. Попробуй другой вариант 💚",
 		VolunteerTasksLocationMissingText:    "📍 Отправь локацию кнопкой ниже или пропусти шаг — покажу дела без геопривязки.",
 		VolunteerTasksLocationUpdateButton:   "📍 Отправить локацию",
 		VolunteerTasksLocationSkipButton:     "Пропустить",

@@ -133,7 +133,7 @@
     "volunteer_tasks_filter_reward_label": "с наградой",
     "volunteer_tasks_filter_team_label": "для команды",
     "volunteer_tasks_filter_online_label": "онлайн",
-    "volunteer_tasks_filter_empty_text": "По выбранному фильтру пока ничего нет. Попробуй другой вариант 💚",
+    "volunteer_tasks_filter_empty_text": "По фильтру «%s» пока ничего нет. Попробуй другой вариант 💚",
     "volunteer_tasks_location_missing_text": "📍 Пришли локацию кнопкой ниже или пропусти шаг — покажу дела без геопривязки.",
     "volunteer_tasks_location_update_button": "📍 Отправить локацию",
     "volunteer_tasks_location_skip_button": "Пропустить",

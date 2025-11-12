@@ -907,7 +907,7 @@ func (h *MessageHandler) buildVolunteerGeoTasksView(ctx context.Context, userID 
 
 	filtered := h.filterVolunteerTasks(tasks, userID, filter)
 	if len(filtered) == 0 {
-		builder.WriteString(h.volunteerFilterEmptyText())
+		builder.WriteString(h.volunteerFilterEmptyText(filter))
 		keyboard := h.api.Messages.NewKeyboardBuilder()
 		h.appendVolunteerFilterRows(keyboard, volunteerTasksViewModeAll, filter)
 		keyboard.AddRow().
@@ -1211,11 +1211,29 @@ func (h *MessageHandler) taskFilterBadge(entry volunteerTaskDisplayEntry) string
 	return " " + strings.Join(parts, "")
 }
 
-func (h *MessageHandler) volunteerFilterEmptyText() string {
-	if text := strings.TrimSpace(h.messages.VolunteerTasksFilterEmptyText); text != "" {
-		return text
+func (h *MessageHandler) volunteerFilterEmptyText(filter volunteerTasksFilter) string {
+	base := strings.TrimSpace(h.messages.VolunteerTasksFilterEmptyText)
+	if base == "" {
+		base = "По фильтру «%s» пока ничего нет. Попробуй другой вариант 💚"
 	}
-	return "По выбранному фильтру ничего не нашлось. Попробуй другой вариант 💚"
+
+	label := strings.TrimSpace(h.currentFilterLabel(filter))
+	if label == "" {
+		label = strings.TrimSpace(h.currentFilterLabel(volunteerTasksFilterAll))
+	}
+	if label != "" && !strings.Contains(label, "«") {
+		label = fmt.Sprintf("«%s»", label)
+	}
+
+	if strings.Contains(base, "%s") {
+		return fmt.Sprintf(base, label)
+	}
+
+	if label != "" {
+		return fmt.Sprintf("%s\n\nФильтр: %s", base, label)
+	}
+
+	return base
 }
 
 func (h *MessageHandler) volunteerLocationMissingText() string {
